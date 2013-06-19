@@ -63,25 +63,30 @@ public class Trie<V> {
       return new Node(key, val);
     }
 
-    // replace existing value in n
-    if (d == key.length()) {
-      n.value = val;
-      return n;
-    }
-
-//    if(d >= n.depth) {
-//      addNewNode(n, key, val);
-//      return ;
-//    }
 
     while (d <= n.depth && key.charAt(d) == n.key.charAt(d)) {
       d++;
     }
 
-    char c = key.charAt(d);
-    Node r = put(n.childMatching(c), key, val, d + 1);
-    n.add(r);
-    return n;
+    // match
+    if (d == key.length())
+      return n;
+
+    // n is exhausted
+    if (d > n.depth) {
+      if (d < key.length()) {
+        char c = key.charAt(d);
+        Node r = put(n.childMatching(c), key, val, d + 1);
+        n.add(r);
+        return n;
+      }
+    }
+
+
+//    char c = key.charAt(d);
+//    Node r = put(n.childMatching(c), key, val, d + 1);
+//    n.add(r);
+//    return n;
   }
 
   private void addNewNode(Node n, String key, V val) {
