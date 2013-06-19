@@ -51,23 +51,35 @@ public class Trie<V> {
   }
 
   void put(String key, V value) {
-    put(root, key, value, 0);
+    put(root, key, value, -1);
   }
 
-  private Node put(Node x, String key, V val, int d) {
-    if (x == null)
-      return new Node(key, val);
-
+  private void put(Node n, String key, V val, int d) {
+    // replace existing value in n
     if (d == key.length()) {
-      x.value = val;
-      return x;
+      n.value = val;
+      return;
     }
-    char c = key.charAt(d); // Use dth key char to identify subtrie.
 
-    Node newChild = put(x.childMatching(c), key, val, d + 1);
-    x.children.add(newChild);
-    return x;
+    if(d >= n.depth) {
+      addNewNode(n, key, val);
+      return;
+    }
+
+    char c = key.charAt(d);
+    Node child = n.childMatching(c);
+    if(child == null) {
+      addNewNode(n, key, val);
+    } else {
+      put(child, key, val, d+1);
+    }
   }
+
+  private void addNewNode(Node n, String key, V val) {
+    Node newNode = new Node(key, val);
+    n.children.add(newNode);
+  }
+
 
   public V get(String key) {
     Node<V> x = get(root, key, 0);

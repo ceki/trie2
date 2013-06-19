@@ -8,10 +8,14 @@ public class TrieTest {
 
   @Test
   public void t() {
-    trie.put("a", "a");
-    trie.put("b", "b");
-
-    trie.put("aa", "aa");
+    trie.put("she", "");
+    trie.put("sells", "");
+    trie.put("sea", "");
+    trie.put("shells", "");
+    trie.put("by", "");
+    trie.put("the", "");
+    trie.put("sea", "");
+    trie.put("shore", "");
 
     System.out.println(trie.root);
   }
