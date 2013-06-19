@@ -55,38 +55,57 @@ public class Trie<V> {
   }
 
   void put(String key, V value) {
-    put(root, key, value, -1);
+    Node nearestParent = getNearestNode(root, key, 0);
+    System.out.println("nearest parent="+nearestParent);
+    put(nearestParent, key, value, 0);
   }
 
-  private Node put(Node n, String key, V val, int d) {
-    if (n == null) {
-      return new Node(key, val);
-    }
+  private void put(Node n, String key, V value, int d) {
 
+   System.out.println("key="+key+", d="+d);
+   boolean overlap = false;
+   int min = Math.min(n.depth+1, key.length());
 
-    while (d <= n.depth && key.charAt(d) == n.key.charAt(d)) {
+   while (d < min && key.charAt(d) == n.key.charAt(d)) {
+      overlap = true;
       d++;
     }
 
+    if(!overlap) {
+      n.add(new Node(key, value));
+      return;
+    }
+
     // match
-    if (d == key.length())
-      return n;
+    if (key.length() == n.key.length())  {
+      n.value = value;
+      return;
+    }
 
     // n is exhausted
     if (d > n.depth) {
       if (d < key.length()) {
         char c = key.charAt(d);
-        Node r = put(n.childMatching(c), key, val, d + 1);
-        n.add(r);
-        return n;
+        Node matchingChild = n.childMatching(c);
+        if(matchingChild == null) {
+          n.add(new Node(key, value)) ;
+        } else {
+          put(matchingChild, key, value, d+1);
+        }
       }
+    } else {
+      System.out.println("***");
+      split(n, value, d);
+      return;
     }
+  }
 
+  private void split(Node<V> n, V val, int d) {
+    Node<V>  nClone = new Node<V>(n.key, n.value);
+    n.key = nClone.key.substring(0, d);
+    n.add(nClone);
+    n.value = val;
 
-//    char c = key.charAt(d);
-//    Node r = put(n.childMatching(c), key, val, d + 1);
-//    n.add(r);
-//    return n;
   }
 
   private void addNewNode(Node n, String key, V val) {
@@ -96,25 +115,36 @@ public class Trie<V> {
 
 
   public V get(String key) {
-    Node<V> x = get(root, key, 0);
-    if (x == null) return null;
-    return x.value;
+    Node<V> n = getNearestNode(root, key, 0);
+    if (n == null) return null;
+    if(n.depth+1 == key.length()) {
+      return n.value;
+    } else
+      return null;
   }
 
-  private Node<V> get(Node<V> n, String key, int d) {
-    if (n == null)
-      return null;
+  private Node<V> getNearestNode(Node<V> n, String key, int d) {
+    int min = Math.min(n.depth+1, key.length());
 
-    // advance d as long as the d'th char in key and n match
-    while (d <= n.depth && key.charAt(d) == n.key.charAt(d))
+    while (d < min && key.charAt(d) == n.key.charAt(d))
       d++;
 
     if (d == key.length())
       return n;
 
-    int next_d = d + 1;
-    char c = key.charAt(next_d); // Use dth key char to identify subtrie.
-    return get(n.childMatching(c), key, next_d);
+    if(d+1 < key.length())
+      d++;
+
+    System.out.println("node="+n);
+    System.out.println("key="+key+", next_d="+d);
+
+    char c = key.charAt(d); // Use dth key char to identify subtrie.
+    Node<V> nearerChild = n.childMatching(c);
+    if(nearerChild == null) {
+      return n;
+    } else {
+      return getNearestNode(nearerChild, key, d);
+    }
   }
 
 

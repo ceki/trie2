@@ -13,12 +13,12 @@ public class TrieTest {
     trie.put("abc", "");
     trie.put("a", "");
 
+    System.out.println("result=========");
     System.out.println(trie.root);
   }
 
 
   @Test
-  @Ignore
   public void goal() {
     trie.put("she", "");
     trie.put("sells", "");
