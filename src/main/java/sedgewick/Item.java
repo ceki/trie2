@@ -1,11 +1,13 @@
 package sedgewick;
 
-/**
- * Created with IntelliJ IDEA.
- * User: ceki
- * Date: 6/19/13
- * Time: 2:38 PM
- * To change this template use File | Settings | File Templates.
- */
 public class Item {
+  Key key;
+
+  Item(Key k) {
+    key = k;
+  }
+
+  Key key () {
+    return key;
+  }
 }
