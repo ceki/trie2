@@ -31,6 +31,10 @@ public class Trie<V> {
       return null;
     }
 
+    void add(Node child) {
+      children.add(child);
+    }
+
     public String toString() {
       StringBuilder sb = new StringBuilder("{");
       if (key != null) {
@@ -54,25 +58,30 @@ public class Trie<V> {
     put(root, key, value, -1);
   }
 
-  private void put(Node n, String key, V val, int d) {
+  private Node put(Node n, String key, V val, int d) {
+    if (n == null) {
+      return new Node(key, val);
+    }
+
     // replace existing value in n
     if (d == key.length()) {
       n.value = val;
-      return;
+      return n;
     }
 
-    if(d >= n.depth) {
-      addNewNode(n, key, val);
-      return;
+//    if(d >= n.depth) {
+//      addNewNode(n, key, val);
+//      return ;
+//    }
+
+    while (d <= n.depth && key.charAt(d) == n.key.charAt(d)) {
+      d++;
     }
 
     char c = key.charAt(d);
-    Node child = n.childMatching(c);
-    if(child == null) {
-      addNewNode(n, key, val);
-    } else {
-      put(child, key, val, d+1);
-    }
+    Node r = put(n.childMatching(c), key, val, d + 1);
+    n.add(r);
+    return n;
   }
 
   private void addNewNode(Node n, String key, V val) {
@@ -92,7 +101,7 @@ public class Trie<V> {
       return null;
 
     // advance d as long as the d'th char in key and n match
-    while (d <= n.depth && key.charAt(d) == key.charAt(d))
+    while (d <= n.depth && key.charAt(d) == n.key.charAt(d))
       d++;
 
     if (d == key.length())
