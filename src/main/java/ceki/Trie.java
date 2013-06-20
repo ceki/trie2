@@ -10,22 +10,23 @@ public class Trie<V> {
 
   private static class Node<VN> {
     String key;
-    int depth;
     VN value;
     List<Node> children = new ArrayList<Node>();
 
     Node(String key, VN value) {
       this.key = key;
       this.value = value;
-      this.depth = key.length() - 1;
     }
 
-    Node(String key) { this(key, null); }
+    Node(String key) {
+      this(key, null);
+    }
 
     public Node<VN> childMatching(char c) {
+      int pointer = key.length();
       for (int i = 0; i < children.size(); i++) {
         Node<VN> child = children.get(i);
-        if (c == child.key.charAt(depth + 1))
+        if (c == child.key.charAt(pointer))
           return child;
       }
       return null;
@@ -36,116 +37,136 @@ public class Trie<V> {
     }
 
     public String toString() {
-      StringBuilder sb = new StringBuilder("{");
-      if (key != null) {
-        sb.append("key=\"");
-        sb.append(key);
-        sb.append('"');
-      } else {
-        sb.append("key=null");
-      }
-      if (children.size() > 0) {
-        sb.append(" children:");
-        sb.append(children);
-      }
-      sb.append("}");
+      StringBuilder sb = new StringBuilder();
+      innerToString(sb, this, "");
       return sb.toString();
+    }
+
+    void innerToString(StringBuilder sb, Node<VN> n, String padding) {
+      sb.append(padding).append('"').append(n.key).append('"');
+      for (Node child : n.children) {
+        sb.append("\r\n");
+        innerToString(sb, child, padding + "    ");
+      }
     }
 
   }
 
   void put(String key, V value) {
     Node nearestParent = getNearestNode(root, key, 0);
-    System.out.println("nearest parent="+nearestParent);
-    put(nearestParent, key, value, 0);
-  }
-
-  private void put(Node n, String key, V value, int d) {
-
-   System.out.println("key="+key+", d="+d);
-   boolean overlap = false;
-   int min = Math.min(n.depth+1, key.length());
-
-   while (d < min && key.charAt(d) == n.key.charAt(d)) {
-      overlap = true;
-      d++;
-    }
-
-    if(!overlap) {
-      n.add(new Node(key, value));
-      return;
-    }
-
-    // match
-    if (key.length() == n.key.length())  {
-      n.value = value;
-      return;
-    }
-
-    // n is exhausted
-    if (d > n.depth) {
-      if (d < key.length()) {
-        char c = key.charAt(d);
-        Node matchingChild = n.childMatching(c);
-        if(matchingChild == null) {
-          n.add(new Node(key, value)) ;
-        } else {
-          put(matchingChild, key, value, d+1);
-        }
-      }
+    if (nearestParent == root) {
+      root.add(new Node(key, value));
     } else {
-      System.out.println("***");
-      split(n, value, d);
-      return;
+      put(nearestParent, key, value, 0);
     }
   }
 
-  private void split(Node<V> n, V val, int d) {
-    Node<V>  nClone = new Node<V>(n.key, n.value);
-    n.key = nClone.key.substring(0, d);
-    n.add(nClone);
-    n.value = val;
-
+  public int nodeCount() {
+    return nodeCount(root);
   }
 
-  private void addNewNode(Node n, String key, V val) {
-    Node newNode = new Node(key, val);
-    n.children.add(newNode);
+  private int nodeCount(Node<V> aNode) {
+    int count = 1;
+    for (Node child : aNode.children) {
+      count += nodeCount(child);
+    }
+    return count;
+  }
+
+  // n is the nearest node with common prefix with key
+  // it means that at least one char of n matches key
+  private void put(Node<V> nearestNode, String key, V value, int d) {
+    int indexOfFirstMismatch = advancePointer(key, nearestNode, d);
+
+    if (indexOfFirstMismatch == d)
+      throw new IllegalStateException("no overlap between node [" + nearestNode + "] and key [" + key + "]");
+
+    int nearestNodeLen = nearestNode.key.length();
+    int keyLen = key.length();
+
+
+    if (keyLen == nearestNodeLen) {
+      if (indexOfFirstMismatch == keyLen) {
+        nearestNode.value = value;
+      } else {
+        threeWaySplit(nearestNode, key, value, indexOfFirstMismatch);
+      }
+    } else if (keyLen < nearestNodeLen) {
+      if (indexOfFirstMismatch == keyLen) {
+        Node<V> clone = new Node<V>(nearestNode.key, nearestNode.value);
+        String commonPrefix = clone.key.substring(0, indexOfFirstMismatch);
+        nearestNode.key = commonPrefix;
+        nearestNode.add(clone);
+      } else {
+        threeWaySplit(nearestNode, key, value, indexOfFirstMismatch);
+      }
+    } else { // if (nearestNodeLen < keyLen)
+      if (indexOfFirstMismatch == nearestNodeLen) {
+        nearestNode.add(new Node(key, value));
+      } else {
+        threeWaySplit(nearestNode, key, value, indexOfFirstMismatch);
+      }
+    }
+  }
+
+  private void threeWaySplit(Node<V> node2split, String key, V value, int mismatchIndex) {
+    System.out.println("threeWaySplit [" + node2split.key + "] for key [" + key + "] d=" + mismatchIndex);
+
+    int nearestNodeLen = node2split.key.length();
+    int keyLen = key.length();
+
+
+    Node<V> clone = new Node<V>(node2split.key, node2split.value);
+    String commonPrefix = clone.key.substring(0, mismatchIndex);
+    node2split.key = commonPrefix;
+    node2split.add(clone);
+
+    node2split.add(new Node(key, value));
+
+//    if (keyLen >= nearestNodeLen || mismatchIndex != keyLen) {
+//      node2split.add(new Node(key, value));
+//    }
   }
 
 
   public V get(String key) {
     Node<V> n = getNearestNode(root, key, 0);
     if (n == null) return null;
-    if(n.depth+1 == key.length()) {
+    if (n.key.length() == key.length()) {
       return n.value;
     } else
       return null;
   }
 
+  public String getNearestKey(String key) {
+    Node<V> n = getNearestNode(root, key, 0);
+    return n.key;
+  }
+
   private Node<V> getNearestNode(Node<V> n, String key, int d) {
-    int min = Math.min(n.depth+1, key.length());
-
-    while (d < min && key.charAt(d) == n.key.charAt(d))
-      d++;
-
+    d = advancePointer(key, n, d);
     if (d == key.length())
       return n;
+    return exploreChildren(n, key, d);
+  }
 
-    if(d+1 < key.length())
-      d++;
-
-    System.out.println("node="+n);
-    System.out.println("key="+key+", next_d="+d);
-
+  private Node<V> exploreChildren(Node<V> n, String key, int d) {
     char c = key.charAt(d); // Use dth key char to identify subtrie.
     Node<V> nearerChild = n.childMatching(c);
-    if(nearerChild == null) {
+    if (nearerChild == null) {
       return n;
     } else {
       return getNearestNode(nearerChild, key, d);
     }
   }
 
+  private int advancePointer(String key, Node node, int d) {
+    String nodeKey = node.key;
+    int boundary = Math.min(nodeKey.length(), key.length());
+    while (d < boundary && key.charAt(d) == nodeKey.charAt(d)) {
+      d++;
+    }
+    return d;
+  }
 
 }
