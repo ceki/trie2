@@ -1,65 +1,9 @@
 package ceki;
 
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Trie<V> {
 
   Node<V> root = new Node<V>("");
-
-  private static class Node<VN> {
-    String key;
-    VN value;
-    List<Node> children = new ArrayList<Node>();
-
-    Node(String key, VN value) {
-      this.key = key;
-      this.value = value;
-    }
-
-    Node(String key) {
-      this(key, null);
-    }
-
-    public Node<VN> childMatching(char c) {
-      int pointer = key.length();
-      for (int i = 0; i < children.size(); i++) {
-        Node<VN> child = children.get(i);
-        if (c == child.key.charAt(pointer))
-          return child;
-      }
-      return null;
-    }
-
-    void add(Node child) {
-      children.add(child);
-    }
-
-    public String toString() {
-      StringBuilder sb = new StringBuilder();
-      innerToString(sb, this, "");
-      return sb.toString();
-    }
-
-    void innerToString(StringBuilder sb, Node<VN> n, String padding) {
-      sb.append(padding).append('"').append(n.key).append('"');
-      for (Node child : n.children) {
-        sb.append("\r\n");
-        innerToString(sb, child, padding + "    ");
-      }
-    }
-
-  }
-
-  void put(String key, V value) {
-    Node nearestParent = getNearestNode(root, key, 0);
-    if (nearestParent == root) {
-      root.add(new Node(key, value));
-    } else {
-      put(nearestParent, key, value, 0);
-    }
-  }
 
   public int nodeCount() {
     return nodeCount(root);
@@ -73,48 +17,20 @@ public class Trie<V> {
     return count;
   }
 
-  // nearestNode is the nearest node with common prefix with key
-  // it means that at least one char of nearestNode matches key
-  private void put(Node<V> nearestNode, String key, V value, int d) {
-    int indexOfFirstMismatch = advancePointer(key, nearestNode, d);
-
-    if (indexOfFirstMismatch == d)
-      throw new IllegalStateException("no overlap between node [" + nearestNode + "] and key [" + key + "]");
-
-    int nearestNodeLen = nearestNode.key.length();
-    int keyLen = key.length();
-
-
-    if (keyLen == nearestNodeLen && indexOfFirstMismatch == keyLen) {
-      nearestNode.value = value;
-      return;
+  public void clear() {
+    for (Node<V> child : root.children) {
+      clearNode(child);
     }
-
-    split(nearestNode, key, value, indexOfFirstMismatch);
-
+    root.children.clear();
   }
 
-  private void split(Node<V> nn, String key, V value, int mismatchIndex) {
-    if (isSplitRequired(nn, key, mismatchIndex)) {
-      Node<V> clone = new Node<V>(nn.key, nn.value);
-      String commonPrefix = clone.key.substring(0, mismatchIndex);
-      nn.key = commonPrefix;
-      nn.add(clone);
+  private void clearNode(Node<V> aNode) {
+    aNode.value = null;
+    aNode.key = null;
+    for (Node<V> child : aNode.children) {
+      clearNode(child);
     }
-
-    if (isNewChildRequired(nn, key, mismatchIndex)) {
-      nn.add(new Node(key, value));
-    }
-  }
-
-  private boolean isSplitRequired(Node nn, String key, int mismatchIndex) {
-    int nnKeyLen = nn.key.length();
-    return nnKeyLen >= key.length() || mismatchIndex != nnKeyLen;
-  }
-
-  private boolean isNewChildRequired(Node n, String key, int mismatchIndex) {
-    int kLen = key.length();
-    return (kLen < n.key.length() || mismatchIndex != kLen);
+    aNode.children.clear();
   }
 
   public V get(String key) {
@@ -135,7 +51,14 @@ public class Trie<V> {
     d = advancePointer(key, n, d);
     if (d == key.length())
       return n;
-    return exploreChildren(n, key, d);
+    else {
+      char c = key.charAt(d); // Use dth key char to identify subtrie.
+      Node<V> nearerChild = n.childMatching(c);
+      if (nearerChild == null)
+        return n;
+      else
+        return getNearestNode(nearerChild, key, d);
+    }
   }
 
   private Node<V> exploreChildren(Node<V> n, String key, int d) {
@@ -147,6 +70,64 @@ public class Trie<V> {
       return getNearestNode(nearerChild, key, d);
     }
   }
+
+
+  public void put(String key, V value) {
+    Node nearestParent = getNearestNode(root, key, 0);
+    if (nearestParent == root) {
+      root.add(new Node(key, value));
+    } else {
+      put(nearestParent, key, value, 0);
+    }
+  }
+
+
+  // nearestNode is the nearest node with common prefix with key
+  // it means that at least one char of nearestNode matches key
+  private void put(Node<V> nearestNode, String key, V value, int d) {
+    int indexOfFirstMismatch = advancePointer(key, nearestNode, d);
+
+    if (indexOfFirstMismatch == d)
+      throw new IllegalStateException("no overlap between node [" + nearestNode + "] and key [" + key + "]");
+
+    if (isFullMatch(nearestNode, key, indexOfFirstMismatch)) {
+      nearestNode.value = value;
+      return;
+    }
+    split(nearestNode, key, value, indexOfFirstMismatch);
+  }
+
+  private boolean isFullMatch(Node<V> nearestNode, String key, int indexOfFirstMismatch) {
+    int keyLen = key.length();
+    return keyLen == nearestNode.key.length() && indexOfFirstMismatch == keyLen;
+  }
+
+  private void split(Node<V> nn, String key, V value, int mismatchIndex) {
+    if (isSplitRequired(nn, key, mismatchIndex)) {
+      Node<V> clone = new Node<V>(nn.key, nn.value);
+      String commonPrefix = clone.key.substring(0, mismatchIndex);
+      nn.key = commonPrefix;
+      nn.value = null;
+      nn.add(clone);
+    }
+
+    if (isNewChildRequired(nn, key, mismatchIndex)) {
+      nn.add(new Node(key, value));
+    } else {
+      nn.value = value;
+    }
+  }
+
+  private boolean isSplitRequired(Node nn, String key, int mismatchIndex) {
+    int nnKeyLen = nn.key.length();
+    return nnKeyLen >= key.length() || mismatchIndex != nnKeyLen;
+  }
+
+  private boolean isNewChildRequired(Node n, String key, int mismatchIndex) {
+    int kLen = key.length();
+    return (kLen < n.key.length() || mismatchIndex != kLen);
+  }
+
 
   private int advancePointer(String key, Node node, int d) {
     String nodeKey = node.key;
