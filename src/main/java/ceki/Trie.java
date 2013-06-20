@@ -73,8 +73,8 @@ public class Trie<V> {
     return count;
   }
 
-  // n is the nearest node with common prefix with key
-  // it means that at least one char of n matches key
+  // nearestNode is the nearest node with common prefix with key
+  // it means that at least one char of nearestNode matches key
   private void put(Node<V> nearestNode, String key, V value, int d) {
     int indexOfFirstMismatch = advancePointer(key, nearestNode, d);
 
@@ -85,49 +85,37 @@ public class Trie<V> {
     int keyLen = key.length();
 
 
-    if (keyLen == nearestNodeLen) {
-      if (indexOfFirstMismatch == keyLen) {
-        nearestNode.value = value;
-      } else {
-        threeWaySplit(nearestNode, key, value, indexOfFirstMismatch);
-      }
-    } else if (keyLen < nearestNodeLen) {
-      if (indexOfFirstMismatch == keyLen) {
-        Node<V> clone = new Node<V>(nearestNode.key, nearestNode.value);
-        String commonPrefix = clone.key.substring(0, indexOfFirstMismatch);
-        nearestNode.key = commonPrefix;
-        nearestNode.add(clone);
-      } else {
-        threeWaySplit(nearestNode, key, value, indexOfFirstMismatch);
-      }
-    } else { // if (nearestNodeLen < keyLen)
-      if (indexOfFirstMismatch == nearestNodeLen) {
-        nearestNode.add(new Node(key, value));
-      } else {
-        threeWaySplit(nearestNode, key, value, indexOfFirstMismatch);
-      }
+    if (keyLen == nearestNodeLen && indexOfFirstMismatch == keyLen) {
+      nearestNode.value = value;
+      return;
+    }
+
+    split(nearestNode, key, value, indexOfFirstMismatch);
+
+  }
+
+  private void split(Node<V> nn, String key, V value, int mismatchIndex) {
+    if (isSplitRequired(nn, key, mismatchIndex)) {
+      Node<V> clone = new Node<V>(nn.key, nn.value);
+      String commonPrefix = clone.key.substring(0, mismatchIndex);
+      nn.key = commonPrefix;
+      nn.add(clone);
+    }
+
+    if (isNewChildRequired(nn, key, mismatchIndex)) {
+      nn.add(new Node(key, value));
     }
   }
 
-  private void threeWaySplit(Node<V> node2split, String key, V value, int mismatchIndex) {
-    System.out.println("threeWaySplit [" + node2split.key + "] for key [" + key + "] d=" + mismatchIndex);
-
-    int nearestNodeLen = node2split.key.length();
-    int keyLen = key.length();
-
-
-    Node<V> clone = new Node<V>(node2split.key, node2split.value);
-    String commonPrefix = clone.key.substring(0, mismatchIndex);
-    node2split.key = commonPrefix;
-    node2split.add(clone);
-
-    node2split.add(new Node(key, value));
-
-//    if (keyLen >= nearestNodeLen || mismatchIndex != keyLen) {
-//      node2split.add(new Node(key, value));
-//    }
+  private boolean isSplitRequired(Node nn, String key, int mismatchIndex) {
+    int nnKeyLen = nn.key.length();
+    return nnKeyLen >= key.length() || mismatchIndex != nnKeyLen;
   }
 
+  private boolean isNewChildRequired(Node n, String key, int mismatchIndex) {
+    int kLen = key.length();
+    return (kLen < n.key.length() || mismatchIndex != kLen);
+  }
 
   public V get(String key) {
     Node<V> n = getNearestNode(root, key, 0);
