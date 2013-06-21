@@ -109,26 +109,14 @@ public class Trie<V> {
       nn.key = commonPrefix;
       nn.value = null;
       Node.swapChildren(nn, clone);
-      char c = firstChildChar(clone.key, nn.key, mismatchIndex);
-      nn.add(clone, c);
+      nn.add(clone, clone.key.charAt(mismatchIndex));
     }
 
     if (isNewChildRequired(nn, key, mismatchIndex)) {
-      char c = key.charAt(mismatchIndex);
-      nn.add(new Node(key, value), c);
+      nn.add(new Node(key, value), key.charAt(mismatchIndex));
     } else {
       nn.value = value;
     }
-  }
-
-  private char firstChildChar(String k0, String k1, int mismatchIndex) {
-    char c;
-    if(mismatchIndex < k0.length()) {
-      c = k0.charAt(mismatchIndex);
-    } else {
-      c = k1.charAt(mismatchIndex);
-    }
-    return c;
   }
 
   private boolean isSplitRequired(Node nn, String key, int mismatchIndex) {

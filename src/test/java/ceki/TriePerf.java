@@ -113,6 +113,8 @@ public class TriePerf {
   public void trieBasedPerformance() throws Exception {
     for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
       trieBasedTask();
+      if(i==0)
+        System.out.println(trie.root);
       trie.clear();
     }
 

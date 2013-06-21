@@ -6,8 +6,7 @@ import java.util.List;
 class Node<VN> {
   String key;
   VN value;
-  //List<Node> children = new ArrayList<Node>();
-
+//  List<Node> children = new ArrayList<Node>();
   SkipList children = new SkipList();
 
   Node(String key, VN value) {
@@ -31,9 +30,8 @@ class Node<VN> {
   }
 
   static <VN> void swapChildren(Node<VN> n0, Node<VN> n1) {
-    //List<Node> t = n0.children;
+//    List<Node> t = n0.children;
     SkipList t = n0.children;
-
     n0.children = n1.children;
     n1.children = t;
   }
@@ -41,7 +39,6 @@ class Node<VN> {
   void add(Node<VN> child, char c) {
     children.add(child, c);
     //children.add(child);
-
   }
 
   public String toString() {
