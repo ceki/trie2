@@ -26,7 +26,7 @@ public class TriePerf {
 
   @Before
   public void setUp() throws Exception {
-    //recorder = readIn(new File(Constants.SAMPLE_XML));
+    //recorder = readIn(new File(TestConstants.SAMPLE_XML));
   }
 
   void put(String k) {
@@ -111,13 +111,13 @@ public class TriePerf {
 
   @Test
   public void trieBasedPerformance() throws Exception {
-    for (int i = 0; i < Constants.WARM_UP_COUNT; i++) {
+    for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
       trieBasedTask();
       trie.clear();
     }
 
     long sum = 0;
-    for (int i = 0; i < Constants.WARM_UP_COUNT; i++) {
+    for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
       long start = System.nanoTime();
       trieBasedTask();
       trie.clear();
@@ -126,25 +126,25 @@ public class TriePerf {
       sum += diff;
     }
 
-    long avg = sum / Constants.WARM_UP_COUNT;
+    long avg = sum / TestConstants.WARM_UP_COUNT;
     System.out.println("trieBasedPerformance in " + avg + " in micro-seconds");
   }
 
   @Test
   public void ruleStoreBasedPerformance() throws Exception {
-    for (int i = 0; i < Constants.WARM_UP_COUNT; i++) {
+    for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
       ruleStoreBasedTask();
     }
 
     long sum = 0;
-    for (int i = 0; i < Constants.WARM_UP_COUNT; i++) {
+    for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
       long start = System.nanoTime();
       ruleStoreBasedTask();
       long end = System.nanoTime();
       long diff = (end - start) / (1000);
       sum += diff;
     }
-    long avg = sum / Constants.WARM_UP_COUNT;
+    long avg = sum / TestConstants.WARM_UP_COUNT;
     System.out.println("ruleStoreBasedPerformance in " + avg + " in micro-seconds");
   }
 
@@ -160,7 +160,7 @@ public class TriePerf {
   private void ruleStoreBasedTask() throws Exception {
     SimpleRuleStore rs = new SimpleRuleStore(context);
     buildRuleStore(rs);
-    SaxEventRecorder recorder = readIn(new File(Constants.SAMPLE_XML));
+    SaxEventRecorder recorder = readIn(new File(TestConstants.SAMPLE_XML));
 
     for (SaxEvent saxEvent : recorder.getSaxEventList()) {
       if (saxEvent instanceof StartEvent) {
@@ -174,7 +174,7 @@ public class TriePerf {
 
   private void trieBasedTask() throws Exception {
     buildTrie();
-    SaxEventRecorder recorder = readIn(new File(Constants.SAMPLE_XML));
+    SaxEventRecorder recorder = readIn(new File(TestConstants.SAMPLE_XML));
     for (SaxEvent saxEvent : recorder.getSaxEventList()) {
       if (saxEvent instanceof StartEvent) {
         StartEvent startEvent = (StartEvent) saxEvent;
