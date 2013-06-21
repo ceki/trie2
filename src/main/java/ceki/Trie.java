@@ -1,6 +1,5 @@
 package ceki;
 
-
 public class Trie<V> {
 
   Node<V> root = new Node<V>("");
@@ -108,6 +107,7 @@ public class Trie<V> {
       String commonPrefix = clone.key.substring(0, mismatchIndex);
       nn.key = commonPrefix;
       nn.value = null;
+      Node.swapChildren(nn, clone);
       nn.add(clone);
     }
 

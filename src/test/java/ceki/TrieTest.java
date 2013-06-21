@@ -5,6 +5,18 @@ import org.junit.Test;
 import static junit.framework.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
 
+// nn = nearestNode.key.length
+// k = key.length
+// d = indexOfMismatch
+//
+// case A0  nn == k, d == nn
+// case A1  nn == k, d < nn
+// case B0  k < nn,  d == k
+// case B1  k < nn,  d < k
+// case C0  nn < k,  d == nn
+// case C1  nn < k,  d < nn
+
+
 public class TrieTest {
 
   Trie<Object> trie = new Trie<Object>();
@@ -40,52 +52,122 @@ public class TrieTest {
 
 
   @Test
-  public void verifyThatAllSixCasesForSplitting() {
+  public void verifyAllSixCasesForChildFreeSplitting() {
+    // A0
     putSame("aaa");
     putSame("aaa");
     assertEquals(2, trie.nodeCount());
-    assertEquals("aaa", trie.get("aaa"));
+    assertSameness("aaa");
     trie.clear();
 
+    // A1
     putSame("aaa");
     putSame("a11");
     assertEquals(4, trie.nodeCount());
-    assertEquals("aaa", trie.get("aaa"));
-    assertEquals("a11", trie.get("a11"));
+    assertSameness("aaa");
+    assertSameness("a11");
     assertNull(trie.get("a"));
     trie.clear();
 
+    // B0
     putSame("abc");
     putSame("abcd");
     assertEquals(3, trie.nodeCount());
-    assertEquals("abc", trie.get("abc"));
-    assertEquals("abcd", trie.get("abcd"));
+    assertSameness("abc");
+    assertSameness("abcd");
     trie.clear();
 
+    // B1
     putSame("abc");
     putSame("abx");
-    assertEquals("abc", trie.get("abc"));
-    assertEquals("abx", trie.get("abx"));
+    assertSameness("abc");
+    assertSameness("abx");
     assertNull(trie.get("ab"));
     assertEquals(4, trie.nodeCount());
     trie.clear();
 
-    putSame("abc");
+    // C0
     putSame("ab");
-    assertEquals("abc", trie.get("abc"));
-    assertEquals("ab", trie.get("ab"));
+    putSame("abc");
+    assertSameness("ab");
+    assertSameness("abc");
     assertEquals(3, trie.nodeCount());
     trie.clear();
 
+    // C1
     putSame("abc");
     putSame("az");
-    assertEquals("abc", trie.get("abc"));
-    assertEquals("az", trie.get("az"));
+    assertSameness("abc");
+    assertSameness("az");
     assertNull(trie.get("a"));
     assertEquals(4, trie.nodeCount());
     trie.clear();
   }
 
+
+  // case A1  nn == k, d < nn
+  @Test
+  public void verifySplittingWithChildrenA1() {
+    putSame("aaa");
+    putSame("aaaabbb");
+    putSame("a11");
+    assertEquals(5, trie.nodeCount());
+    assertSameness("aaa");
+    assertSameness("aaaabbb");
+    assertSameness("a11");
+    assertNull(trie.get("a"));
+  }
+
+  // case B0  k < nn,  d == k
+  @Test
+  public void verifySplittingWithChildrenB0() {
+    putSame("abc");
+    putSame("abc000");
+    putSame("abc111");
+    assertEquals(4, trie.nodeCount());
+    assertSameness("abc");
+    assertSameness("abc000");
+    assertSameness("abc111");
+  }
+
+  // case B1  k < nn,  d < k
+  @Test
+  public void verifySplittingWithChildrenB1() {
+    putSame("abc");
+    putSame("abc000");
+    putSame("ax");
+    assertSameness("abc");
+    assertSameness("abc000");
+    assertSameness("ax");
+    assertNull(trie.get("a"));
+    assertEquals(5, trie.nodeCount());
+  }
+
+  //case C0  nn < k,  d == nn
+  @Test
+  public void verifySplittingWithChildrenC0() {
+    putSame("ab");
+    putSame("ab000");
+    putSame("abc");
+    assertSameness("ab");
+    assertSameness("ab000");
+    assertSameness("abc");
+    assertEquals(4, trie.nodeCount());
+    dump();
+  }
+
+  //case C1  nn < k,  d < nn
+  @Test
+  public void verifySplittingWithChildrenC1() {
+    putSame("ab");
+    putSame("ab000");
+    putSame("ac");
+    assertSameness("ab");
+    assertSameness("ab000");
+    assertSameness("ac");
+    assertEquals(5, trie.nodeCount());
+    dump();
+  }
 
   @Test
   public void goal() {
@@ -103,6 +185,10 @@ public class TrieTest {
 
   void putSame(String k) {
     trie.put(k, k);
+  }
+
+  void assertSameness(String k) {
+    assertEquals(k, trie.get(k));
   }
 
   void dump() {
