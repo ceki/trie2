@@ -19,21 +19,33 @@ public class SkipListTest {
   }
 
   @Test
-  public void more() {
+  public void moreNodes() {
     char c = 'a';
-    for(int i = 0; i < 10; i++) {
-      skipList.add(getNode(""+c), c);
+    for (int i = 0; i < 10; i++) {
+      skipList.add(getNode("" + c), c);
       c++;
     }
 
     c = 'a';
-    for(int i = 0; i < 10; i++) {
-      assertEquals(""+c, skipList.get(c).key);
+    for (int i = 0; i < 10; i++) {
+      assertEquals("" + c, skipList.get(c).key);
       c++;
     }
     dump();
   }
 
+
+  @Test
+  public void clear() {
+    char c = 'a';
+    for (int i = 0; i < 10; i++) {
+      skipList.add(getNode("" + c), c);
+      c++;
+    }
+    skipList.clear();
+    dump();
+    assertEquals(0, skipList.size());
+  }
 
   private Node<String> getNode(String k) {
     return new Node<String>(k, k);

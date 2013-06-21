@@ -26,7 +26,7 @@ public class TriePerf {
 
   @Before
   public void setUp() throws Exception {
-    //recorder = readIn(new File(TestConstants.SAMPLE_XML));
+    recorder = readIn(new File(TestConstants.SAMPLE_XML));
   }
 
   void put(String k) {
@@ -174,7 +174,7 @@ public class TriePerf {
 
   private void trieBasedTask() throws Exception {
     buildTrie();
-    SaxEventRecorder recorder = readIn(new File(TestConstants.SAMPLE_XML));
+    //SaxEventRecorder recorder = readIn(new File(TestConstants.SAMPLE_XML));
     for (SaxEvent saxEvent : recorder.getSaxEventList()) {
       if (saxEvent instanceof StartEvent) {
         StartEvent startEvent = (StartEvent) saxEvent;

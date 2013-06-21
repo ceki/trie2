@@ -1,8 +1,8 @@
 package ceki;
 
-import java.util.Random;
+import java.util.Iterator;
 
-public class SkipList  {
+public class SkipList implements Iterable<Node> {
 
   static final int MAX_LEVEL = 3;
 
@@ -23,7 +23,6 @@ public class SkipList  {
   int maxLevel = 0;
 
 
-
   public void add(Node payload, char c) {
     int nodeLevel = getRandomLevel();
     updateMaxLevelIfNecessary(nodeLevel);
@@ -34,7 +33,7 @@ public class SkipList  {
   }
 
   private void updateAllPointers(SkipNode[] leftNodes, SkipNode newSkipNode) {
-    for(int lvl = leftNodes.length-1; lvl >= 0; lvl--) {
+    for (int lvl = leftNodes.length - 1; lvl >= 0; lvl--) {
       updatePointers(leftNodes[lvl], newSkipNode, lvl);
     }
   }
@@ -46,9 +45,9 @@ public class SkipList  {
   }
 
   private SkipNode[] getLargestSmallerNodesAs(SkipNode aSkipNode) {
-    int level = aSkipNode.forward.length-1;
+    int level = aSkipNode.forward.length - 1;
     char c = aSkipNode.c;
-    SkipNode[] largestSmallerNodes = new SkipNode[level+1];
+    SkipNode[] largestSmallerNodes = new SkipNode[level + 1];
     SkipNode n = head;
     for (int lvl = level; lvl >= 0; lvl--) {
       n = getTheHighestSmallerNodeForLevel(c, n, lvl);
@@ -58,14 +57,61 @@ public class SkipList  {
   }
 
 
+  public Iterator<Node> iterator() {
+
+    return new Iterator<Node>() {
+      SkipNode n = head.forward[0];
+
+      @Override
+      public boolean hasNext() {
+        return n != null;
+      }
+
+      @Override
+      public Node next() {
+        Node payload = n.payload;
+        n = n.forward[0];
+        return payload;
+      }
+
+      @Override
+      public void remove() {
+      }
+    };
+  }
+
+  public void clear() {
+    for (int lvl = maxLevel; lvl >= 0; lvl--) {
+      clearPointersAtLevel(lvl);
+    }
+    maxLevel = 0;
+  }
+
+  private void clearPointersAtLevel(int level) {
+    SkipNode n = head;
+    while (n != null) {
+      SkipNode t = n.forward[level];
+      n.forward[level] = null;
+      n = t;
+    }
+  }
+
+  int size() {
+    SkipNode n = head.forward[0];
+    int count = 0;
+    while (n != null) {
+      count++;
+      n = n.forward[0];
+    }
+    return count;
+  }
 
   private int getRandomLevel() {
     int level = 0;
-    while(random.next() == 0 && level < MAX_LEVEL) {
+    while (random.next() == 0 && level < MAX_LEVEL) {
       level++;
     }
-    System.out.println("level="+level);
-    return  level;
+    return level;
   }
 
 
@@ -73,7 +119,7 @@ public class SkipList  {
     SkipNode n = head;
     n = getTheHighestSmallerNode(c, n);
     n = n.forward[0];
-    if(n != null && n.c == c)
+    if (n != null && n.c == c)
       return n.payload;
     else
       return null;
@@ -94,7 +140,7 @@ public class SkipList  {
   }
 
   private void updateMaxLevelIfNecessary(int nodeLevel) {
-    if(nodeLevel > maxLevel)
+    if (nodeLevel > maxLevel)
       maxLevel = nodeLevel;
   }
 

@@ -6,8 +6,9 @@ import java.util.List;
 class Node<VN> {
   String key;
   VN value;
-  List<Node> children = new ArrayList<Node>();
+  //List<Node> children = new ArrayList<Node>();
 
+  SkipList children = new SkipList();
 
   Node(String key, VN value) {
     this.key = key;
@@ -19,23 +20,17 @@ class Node<VN> {
   }
 
   public Node<VN> childMatching(char c) {
-    int pointer = key.length();
-    for (int i = 0; i < children.size(); i++) {
-      Node<VN> child = children.get(i);
-      if (c == child.key.charAt(pointer))
-        return child;
-    }
-    return null;
+    return children.get(c);
   }
 
   static <VN> void swapChildren(Node<VN> n0, Node<VN> n1) {
-    List<Node> t = n0.children;
+    SkipList t = n0.children;
     n0.children = n1.children;
     n1.children = t;
   }
 
-  void add(Node<VN> child) {
-    children.add(child);
+  void add(Node<VN> child, char c) {
+    children.add(child, c);
   }
 
   public String toString() {

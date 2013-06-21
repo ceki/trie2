@@ -23,7 +23,7 @@ public class TrieTest {
 
 
   @Test
-  public void t1() {
+  public void smoke() {
     putSame("abc");
     putSame("a");
     assertEquals(3, trie.nodeCount());
@@ -64,6 +64,8 @@ public class TrieTest {
     putSame("aaa");
     putSame("a11");
     assertEquals(4, trie.nodeCount());
+    dump();
+
     assertSameness("aaa");
     assertSameness("a11");
     assertNull(trie.get("a"));
