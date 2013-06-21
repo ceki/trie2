@@ -12,10 +12,9 @@ public class JoranPerf {
   LoggerContext context = new LoggerContext();
 
 
-  @Test
   public void joranTask() throws JoranException {
-    LimitedJoranConfigurator jc = new LimitedJoranConfigurator();
-    //JoranConfigurator jc = new JoranConfigurator();
+    //LimitedJoranConfigurator jc = new LimitedJoranConfigurator();
+    JoranConfigurator jc = new JoranConfigurator();
     jc.setContext(context);
     jc.doConfigure(new File(TestConstants.SAMPLE_XML));
   }

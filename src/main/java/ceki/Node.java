@@ -8,6 +8,7 @@ class Node<VN> {
   VN value;
   List<Node> children = new ArrayList<Node>();
 
+
   Node(String key, VN value) {
     this.key = key;
     this.value = value;
@@ -27,7 +28,13 @@ class Node<VN> {
     return null;
   }
 
-  void add(Node child) {
+  static <VN> void swapChildren(Node<VN> n0, Node<VN> n1) {
+    List<Node> t = n0.children;
+    n0.children = n1.children;
+    n1.children = t;
+  }
+
+  void add(Node<VN> child) {
     children.add(child);
   }
 
@@ -39,6 +46,7 @@ class Node<VN> {
 
   void innerToString(StringBuilder sb, Node<VN> n, String padding) {
     sb.append(padding).append('"').append(n.key).append('"');
+    sb.append(" -> (").append(n.value).append(")");
     for (Node child : n.children) {
       sb.append("\r\n");
       innerToString(sb, child, padding + "    ");
