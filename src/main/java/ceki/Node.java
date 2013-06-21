@@ -21,16 +21,27 @@ class Node<VN> {
 
   public Node<VN> childMatching(char c) {
     return children.get(c);
+//    int pointer = key.length();
+//    for (int i = 0; i < children.size(); i++) {
+//      Node<VN> child = children.get(i);
+//      if (c == child.key.charAt(pointer))
+//        return child;
+//    }
+//    return null;
   }
 
   static <VN> void swapChildren(Node<VN> n0, Node<VN> n1) {
+    //List<Node> t = n0.children;
     SkipList t = n0.children;
+
     n0.children = n1.children;
     n1.children = t;
   }
 
   void add(Node<VN> child, char c) {
     children.add(child, c);
+    //children.add(child);
+
   }
 
   public String toString() {
