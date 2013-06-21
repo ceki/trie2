@@ -153,7 +153,6 @@ public class TrieTest {
     assertSameness("ab000");
     assertSameness("abc");
     assertEquals(4, trie.nodeCount());
-    dump();
   }
 
   //case C1  nn < k,  d < nn
@@ -166,7 +165,6 @@ public class TrieTest {
     assertSameness("ab000");
     assertSameness("ac");
     assertEquals(5, trie.nodeCount());
-    dump();
   }
 
   @Test
@@ -180,7 +178,6 @@ public class TrieTest {
     putSame("the");
     putSame("sea");
     putSame("shore");
-    //dump();
   }
 
   void putSame(String k) {
