@@ -7,8 +7,11 @@ import ch.qos.logback.core.joran.action.NOPAction;
 import ch.qos.logback.core.joran.event.SaxEvent;
 import ch.qos.logback.core.joran.event.SaxEventRecorder;
 import ch.qos.logback.core.joran.event.StartEvent;
+import ch.qos.logback.core.joran.event.stax.StaxEvent;
+import ch.qos.logback.core.joran.event.stax.StaxEventRecorder;
 import ch.qos.logback.core.joran.spi.*;
-import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xml.sax.InputSource;
 
@@ -18,15 +21,16 @@ import java.io.IOException;
 import java.util.List;
 
 public class TriePerf {
-
-
   Trie<String> trie = new Trie<String>();
-  Context context = new ContextBase();
-  SaxEventRecorder recorder;
+  static Context context = new ContextBase();
 
-  @Before
-  public void setUp() throws Exception {
-    recorder = readIn(new File(TestConstants.SAMPLE_XML));
+  //static StaxEventRecorder staxEventRecorder = new StaxEventRecorder(context);
+  //static SaxEventRecorder saxEventRecorder = new SaxEventRecorder(context);
+
+  @BeforeClass
+  static public void beforeClass() throws Exception {
+    //saxReadIn(new File(TestConstants.SAMPLE_XML), saxEventRecorder);
+    //staxReadIn(new File(TestConstants.SAMPLE_XML), staxEventRecorder);
   }
 
   void put(String k) {
@@ -110,18 +114,18 @@ public class TriePerf {
   }
 
   @Test
-  public void trieBasedPerformance() throws Exception {
+  public void trieBasedPerformance_SAX() throws Exception {
     for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
-      trieBasedTask();
-      if(i==0)
-        System.out.println(trie.root);
+      trieBasedTask_SAX();
+//      if(i==0)
+//        System.out.println(trie.root);
       trie.clear();
     }
 
     long sum = 0;
     for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
       long start = System.nanoTime();
-      trieBasedTask();
+      trieBasedTask_SAX();
       trie.clear();
       long end = System.nanoTime();
       long diff = (end - start) / (1000);
@@ -129,8 +133,33 @@ public class TriePerf {
     }
 
     long avg = sum / TestConstants.WARM_UP_COUNT;
-    System.out.println("trieBasedPerformance in " + avg + " in micro-seconds");
+    System.out.println("trieBasedTask_SAX performance in " + avg + " in micro-seconds");
   }
+
+  @Test
+  @Ignore
+  public void trieBasedPerformance_STAX() throws Exception {
+    for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
+      trieBasedTask_STAX();
+//      if(i==0)
+//        System.out.println(trie.root);
+      trie.clear();
+    }
+
+    long sum = 0;
+    for (int i = 0; i < TestConstants.WARM_UP_COUNT; i++) {
+      long start = System.nanoTime();
+      trieBasedTask_STAX();
+      trie.clear();
+      long end = System.nanoTime();
+      long diff = (end - start) / (1000);
+      sum += diff;
+    }
+
+    long avg = sum / TestConstants.WARM_UP_COUNT;
+    System.out.println("trieBasedTask_STAX performance in " + avg + " in micro-seconds");
+  }
+
 
   @Test
   public void ruleStoreBasedPerformance() throws Exception {
@@ -150,34 +179,56 @@ public class TriePerf {
     System.out.println("ruleStoreBasedPerformance in " + avg + " in micro-seconds");
   }
 
-  SaxEventRecorder readIn(File file) throws IOException, JoranException {
+  static SaxEventRecorder saxReadIn(File file, SaxEventRecorder recorder) throws IOException, JoranException {
     FileInputStream inputStream = new FileInputStream(file);
     InputSource inputSource = new InputSource(inputStream);
-    SaxEventRecorder recorder = new SaxEventRecorder(context);
     recorder.recordEvents(inputSource);
     inputStream.close();
     return recorder;
   }
 
+  static void staxReadIn(File file, StaxEventRecorder recorder) throws IOException, JoranException {
+    FileInputStream inputStream = new FileInputStream(file);
+    recorder.recordEvents(inputStream);
+    inputStream.close();
+  }
+
+
   private void ruleStoreBasedTask() throws Exception {
     SimpleRuleStore rs = new SimpleRuleStore(context);
     buildRuleStore(rs);
-    SaxEventRecorder recorder = readIn(new File(TestConstants.SAMPLE_XML));
+    SaxEventRecorder saxEventRecorder = new SaxEventRecorder(context);
+    saxReadIn(new File(TestConstants.SAMPLE_XML), saxEventRecorder);
 
-    for (SaxEvent saxEvent : recorder.getSaxEventList()) {
+    for (SaxEvent saxEvent : saxEventRecorder.getSaxEventList()) {
       if (saxEvent instanceof StartEvent) {
         StartEvent startEvent = (StartEvent) saxEvent;
         List<Action> result = rs.matchActions(startEvent.elementPath);
-        //System.out.println(startEvent.elementPath + " -> " + result);
-
       }
     }
   }
 
-  private void trieBasedTask() throws Exception {
+  private void trieBasedTask_STAX() throws Exception {
     buildTrie();
-    //SaxEventRecorder recorder = readIn(new File(TestConstants.SAMPLE_XML));
-    for (SaxEvent saxEvent : recorder.getSaxEventList()) {
+    StaxEventRecorder staxEventRecorder = new StaxEventRecorder(context);
+    staxReadIn(new File(TestConstants.SAMPLE_XML), staxEventRecorder);
+
+    for (StaxEvent staxEvent : staxEventRecorder.getEventList()) {
+      if (staxEvent instanceof ch.qos.logback.core.joran.event.stax.StartEvent) {
+        ch.qos.logback.core.joran.event.stax.StartEvent startEvent = (ch.qos.logback.core.joran.event.stax.StartEvent) staxEvent;
+        String eventAsKeyword = toKeyword(startEvent.elementPath);
+        String result = trie.get(eventAsKeyword);
+      }
+    }
+  }
+
+
+  private void trieBasedTask_SAX() throws Exception {
+    buildTrie();
+    SaxEventRecorder saxEventRecorder = new SaxEventRecorder(context);
+    saxReadIn(new File(TestConstants.SAMPLE_XML), saxEventRecorder);
+
+    for (SaxEvent saxEvent : saxEventRecorder.getSaxEventList()) {
       if (saxEvent instanceof StartEvent) {
         StartEvent startEvent = (StartEvent) saxEvent;
         String eventAsKeyword = toKeyword(startEvent.elementPath);
