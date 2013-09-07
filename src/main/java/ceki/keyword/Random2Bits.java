@@ -1,4 +1,4 @@
-package ceki;
+package ceki.keyword;
 
 import java.util.Random;
 

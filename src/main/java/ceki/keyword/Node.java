@@ -1,13 +1,10 @@
-package ceki;
-
-import java.util.ArrayList;
-import java.util.List;
+package ceki.keyword;
 
 class Node<VN> {
   String key;
   VN value;
 //  List<Node> children = new ArrayList<Node>();
-  SkipList children = new SkipList();
+  SkipList<Node> children = new SkipList<Node>();
 
   Node(String key, VN value) {
     this.key = key;

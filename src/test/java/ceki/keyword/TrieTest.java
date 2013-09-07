@@ -1,5 +1,6 @@
-package ceki;
+package ceki.keyword;
 
+import ceki.keyword.Trie;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertNull;

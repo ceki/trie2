@@ -1,13 +1,15 @@
-package ceki;
+package ceki.keyword;
 
 
+import ceki.keyword.Node;
+import ceki.keyword.SkipList;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class SkipListTest {
 
-  SkipList skipList = new SkipList();
+  SkipList<Node> skipList = new SkipList<Node>();
 
   @Test
   public void smoke() {

@@ -1,4 +1,4 @@
-package ceki;
+package ceki.keyword;
 
 import ch.qos.logback.core.Context;
 import ch.qos.logback.core.ContextBase;

@@ -1,4 +1,4 @@
-package ceki;
+package ceki.keyword;
 
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.joran.action.*;

@@ -1,4 +1,4 @@
-package ceki;
+package ceki.keyword;
 
 public class TestConstants {
   static String SAMPLE_XML = "src/test/resources/sample.xml";

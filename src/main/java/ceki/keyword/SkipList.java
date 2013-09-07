@@ -1,17 +1,17 @@
-package ceki;
+package ceki.keyword;
 
 import java.util.Iterator;
 
-public class SkipList implements Iterable<Node> {
+public class SkipList<T> implements Iterable<T> {
 
   static final int MAX_LEVEL = 3;
 
-  static class SkipNode {
-    Node payload;
+  static class SkipNode<N> {
+    N payload;
     char c;
     SkipNode[] forward;
 
-    SkipNode(Node payload, char c, int level) {
+    SkipNode(N payload, char c, int level) {
       this.payload = payload;
       this.c = c;
       forward = new SkipNode[level + 1];
@@ -19,11 +19,11 @@ public class SkipList implements Iterable<Node> {
   }
 
   Random2Bits random = new Random2Bits();
-  public final SkipNode head = new SkipNode(null, (char) 0, MAX_LEVEL);
+  public final SkipNode<T> head = new SkipNode<T>(null, (char) 0, MAX_LEVEL);
   int maxLevel = 0;
 
 
-  public void add(Node payload, char c) {
+  public void add(T payload, char c) {
     int nodeLevel = getRandomLevel();
     updateMaxLevelIfNecessary(nodeLevel);
 
@@ -57,10 +57,10 @@ public class SkipList implements Iterable<Node> {
   }
 
 
-  public Iterator<Node> iterator() {
+  public Iterator<T> iterator() {
 
-    return new Iterator<Node>() {
-      SkipNode n = head.forward[0];
+    return new Iterator<T>() {
+      SkipNode<T> n = head.forward[0];
 
       @Override
       public boolean hasNext() {
@@ -68,8 +68,8 @@ public class SkipList implements Iterable<Node> {
       }
 
       @Override
-      public Node next() {
-        Node payload = n.payload;
+      public T next() {
+        T payload = n.payload;
         n = n.forward[0];
         return payload;
       }
@@ -115,8 +115,8 @@ public class SkipList implements Iterable<Node> {
   }
 
 
-  public Node get(char c) {
-    SkipNode n = head;
+  public T get(char c) {
+    SkipNode<T> n = head;
     n = getTheHighestSmallerNode(c, n);
     n = n.forward[0];
     if (n != null && n.c == c)
@@ -143,7 +143,6 @@ public class SkipList implements Iterable<Node> {
     if (nodeLevel > maxLevel)
       maxLevel = nodeLevel;
   }
-
 
   public String toString() {
     StringBuilder sb = new StringBuilder();
