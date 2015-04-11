@@ -4,10 +4,10 @@ public class SuffixTree {
 
     String str;
 
-  // this is a comment
+    // this is a comment
     class SuffixNode {
-      String suffix;
-      int startingPosition;
+        String suffix;
+        int startingPosition;
     }
 
     void insert(String key) {

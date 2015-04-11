@@ -1,13 +1,13 @@
 package sedgewick;
 
 public class Item {
-  Key key;
+    Key key;
 
-  Item(Key k) {
-    key = k;
-  }
+    Item(Key k) {
+        key = k;
+    }
 
-  Key key () {
-    return key;
-  }
+    Key key() {
+        return key;
+    }
 }
