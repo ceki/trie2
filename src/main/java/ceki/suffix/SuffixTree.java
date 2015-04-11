@@ -4,6 +4,7 @@ public class SuffixTree {
 
     String str;
 
+  // this is a comment
     class SuffixNode {
       String suffix;
       int startingPosition;
