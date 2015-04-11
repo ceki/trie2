@@ -2,6 +2,7 @@ package sedgewick;
 
 public class Patricia {
 
+  int aVariable;   
 
   private class Node {
     Item item;
