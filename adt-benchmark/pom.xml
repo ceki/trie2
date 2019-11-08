@@ -25,8 +25,8 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>ch.qos.trie2</groupId>
-		<artifactId>trie2-parent</artifactId>
+		<groupId>ch.qos.adt</groupId>
+		<artifactId>adt-parent</artifactId>
 		<version>1.0-SNAPSHOT</version>
 	</parent>
 
@@ -45,6 +45,13 @@
 
 
 	<dependencies>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>adt</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-core</artifactId>
@@ -65,6 +72,12 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.pure4j</groupId>
+			<artifactId>pure4j-core</artifactId>
+			<version>0.2.7-SNAPSHOT</version>
 		</dependency>
 
 	</dependencies>
