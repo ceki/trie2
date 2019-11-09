@@ -1,16 +1,43 @@
 <configuration>
 
-  <appender name="STDOUT"
-    class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-      <pattern>
-        %d [%thread] - %msg%n
-     </pattern>
-    </encoder>
-  </appender>
+	<shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
 
 
-  <root level="DEBUG">
-    <appender-ref ref="STDOUT" />
-  </root>
+	<appender name="STDOUT"
+		class="ch.qos.logback.core.ConsoleAppender">
+
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>INFO</level>
+		</filter>
+
+
+		<encoder>
+			<pattern>
+				%d %5.5le [%thread] - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss" />
+
+	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
+
+		<file>testFile-${bySecond}.log</file>
+		<append>true</append>
+		<immediateFlush>false</immediateFlush>
+
+		<encoder>
+			<pattern>
+				%d %5.5le [%thread] - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+
+	<root level="DEBUG">
+		<appender-ref ref="STDOUT" />
+		<!-- 
+		<appender-ref ref="FILE" />
+		 -->  
+	</root>
 </configuration>
