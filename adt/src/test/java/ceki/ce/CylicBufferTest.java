@@ -1,9 +1,8 @@
 package ceki.ce;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -14,10 +13,10 @@ public class CylicBufferTest {
 
 	static Logger logger = LoggerFactory.getLogger(CylicBufferTest.class);
 
-	int maxYield =  1024;
-	int RUN_LENGTH = 10* 1000 * 1000;
+	static int MAX_YEILD_COUNT = 1024;
+	static int TOTAL_RUN_LENGTH = 128 * 1024  ;
 
-	int capacity = 256;
+	int capacity = 1;
 
 	CylicBuffer<Integer> ce = new CylicBuffer<>(capacity);
 
@@ -39,76 +38,117 @@ public class CylicBufferTest {
 		}
 	}
 
+	class ProducerRunnable implements Runnable {
+		
+		final int id;
+		final int totalProducers;
+		
+		ProducerRunnable(int id, int totalProducers) {
+			this.id = id;
+			this.totalProducers = totalProducers;
+		}
+		
+		public void run() {
+			int runLen = TOTAL_RUN_LENGTH/totalProducers;
+			for (int i = 0; i < runLen; i++) {
+				int cycle = 0;
+				while (true) {
+					boolean success = ce.insert(id+i*totalProducers);
+					if (success) {
+						break;
+					} else {
+						if (cycle++ > MAX_YEILD_COUNT) {
+							cycle = 0;
+							CylicBufferTest.sleep(1);
+						}
+						Thread.yield();
+					}
+				}
+			}
+			logger.info("Exiting producerRunnable");
+		}
+	};
+
+	class ConsumerRunnable implements Runnable {
+		final int totalProducers;
+		final int totalProducersMask;
+		
+		final int expected[];
+		
+		ConsumerRunnable(int totalProducers) {
+			this.totalProducers = totalProducers;
+			this.totalProducersMask = totalProducers - 1;
+			expected = new int[totalProducers];
+			for(int i = 0; i < totalProducers; i++)
+				expected[i] = i;
+		}
+		
+		public void run() {
+			
+			
+			for (int i = 0; i < TOTAL_RUN_LENGTH; i++) {
+				int cycle = 0;
+
+				while (true) {
+					Optional<Integer> result = ce.consume();
+					if (result.isPresent()) {
+						int r = result.get();
+						
+						int expectIndex = (r & totalProducersMask);
+						int exp = expected[expectIndex];
+						
+						if (exp != r) {
+							logger.warn("result = {} != expected = {} ", r, exp);
+							fail();
+						}
+						expected[expectIndex] += totalProducers;
+						break;
+					} else {
+						;
+						Thread.yield();
+						if (cycle++ > MAX_YEILD_COUNT) {
+							cycle = 0;
+							CylicBufferTest.sleep(10);
+						}
+					}
+				}
+			}
+			logger.info("Exiting consumerRunnable");
+		}
+	};
+
 	@Test
-	public void threaded() throws InterruptedException {
+	public void singleProducerSingleConsumer() throws InterruptedException {
+		nProducersSingleConsumer(1);
+	}
 
-		List<Integer> results = new ArrayList<>();
-		List<Integer> expected = new ArrayList<>();
-		Runnable producerRunnable = new Runnable() {
-			public void run() {
-				for (int i = 0; i < RUN_LENGTH; i++) {
-					int cycle = 0;
-					while (true) {
-						boolean success = ce.insert(i);
-						if (success) {
-							break;
-						} else {
-							if (cycle++ > maxYield) {
-								cycle = 0;
-								CylicBufferTest.sleep(10);
-							}
-							Thread.yield();
-						}
-					}
-				}
-				logger.info("Exiting producerRunnable");
-			}
+	@Test
+	public void twoProducerSingleConsumer() throws InterruptedException {
+		nProducersSingleConsumer(2);
+	}
 
-		};
+	public void nProducersSingleConsumer(int totalProducers) throws InterruptedException {
 
-		Runnable consumerRunnable = new Runnable() {
-			public void run() {
-				for (int i = 0; i < RUN_LENGTH; i++) {
-					int cycle = 0;
+		Thread[] producerThreads = new Thread[totalProducers];
 
-					while (true) {
-						Optional<Integer> result = ce.consume();
-						if (result.isPresent()) {
-							int r = result.get();
-							if (r != i) {
-								logger.warn("result = {} != expected = {} ", r, i);
-							}
-							logger.trace("adding {}", r);
-							results.add(r);
-							break;
-						} else {;
-							Thread.yield();
-							if (cycle++ > maxYield) {
-								cycle = 0;
-								CylicBufferTest.sleep(10);
-							}
-						}
-					}
-				}
-				logger.info("Exiting consumerRunnable");
-			}
-		};
-
+		Runnable consumerRunnable = new ConsumerRunnable(totalProducers);
 		Thread consumer = new Thread(consumerRunnable);
-		consumer.setName("*consumer");
-		Thread producer = new Thread(producerRunnable);
-		producer.setName(" producer");
-		producer.start();
+		consumer.setName("**consumer");
+				
+		for(int p = 0; p < totalProducers; p++) {
+			producerThreads[p] = new Thread(new ProducerRunnable(p, totalProducers));
+			producerThreads[p].setName("producer-"+p);
+			producerThreads[p].start();
+		}
+		
 		consumer.start();
-
-		producer.join();
+		
+		for(int p = 0; p < totalProducers; p++) {
+			producerThreads[p].join();
+		}			
+		
 		consumer.join();
 
-//		for (int i = 0; i < RUN_LENGTH; i++) {
-//			expected.add(i);
-//		}
-//
-//		assertEquals(expected, results);
 
 	}
 

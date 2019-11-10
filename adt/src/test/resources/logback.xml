@@ -7,7 +7,7 @@
 		class="ch.qos.logback.core.ConsoleAppender">
 
 		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-			<level>INFO</level>
+			<level>DEBUG</level>
 		</filter>
 
 
@@ -24,7 +24,7 @@
 
 		<file>testFile-${bySecond}.log</file>
 		<append>true</append>
-		<immediateFlush>false</immediateFlush>
+		<immediateFlush>true</immediateFlush>
 
 		<encoder>
 			<pattern>
@@ -32,12 +32,10 @@
 			</pattern>
 		</encoder>
 	</appender>
+ 
 
-
-	<root level="DEBUG">
+	<root level="INFO">
 		<appender-ref ref="STDOUT" />
-		<!-- 
-		<appender-ref ref="FILE" />
-		 -->  
+	<!-- 	<appender-ref ref="FILE" /> -->
 	</root>
 </configuration>

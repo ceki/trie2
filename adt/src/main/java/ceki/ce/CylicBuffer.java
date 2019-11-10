@@ -17,11 +17,11 @@ public class CylicBuffer<E> {
 	final AtomicReferenceArray<E> array;
 
 	static final int INITIAL_INDEX = -1;
-	AtomicInteger inReserved = new AtomicInteger(INITIAL_INDEX);
-	AtomicInteger inWritten = new AtomicInteger(INITIAL_INDEX);
+	AtomicInteger writeReserved = new AtomicInteger(INITIAL_INDEX);
+	AtomicInteger writeCommitted = new AtomicInteger(INITIAL_INDEX);
 
-	AtomicInteger outAtomic = new AtomicInteger(INITIAL_INDEX);
-
+	AtomicInteger read = new AtomicInteger(INITIAL_INDEX);
+	
 	CylicBuffer(int capacity) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
@@ -29,29 +29,32 @@ public class CylicBuffer<E> {
 	}
 
 	boolean insert(E e) {
-		int priorInReserved;
-		int nextIn;
-		int priorOut;
+		int localWriteReserved;
+		int localWriteCommitted;
 
 		while (true) {
-			priorInReserved = inReserved.get();
-			priorOut = outAtomic.get();
+			localWriteReserved = writeReserved.get();
+			localWriteCommitted = writeCommitted.get();
+
+			if(localWriteReserved != localWriteCommitted)
+				continue;
 			
-			if (isFull(priorInReserved, priorOut)) {
+			if (isFull(localWriteReserved, read.get())) {
 				return false;
 			}
-
-			boolean success = inReserved.compareAndSet(priorInReserved, priorInReserved+1);
+			
+			boolean success = writeReserved.compareAndSet(localWriteReserved, localWriteReserved+1);
 			if (success) {
 				break;
 			}
 		}
 
-		nextIn = cyclicIncrement(priorInReserved);
-		logger.debug("inserting {} at {} ", e, nextIn);
-		array.set(nextIn, e);
+		int cyclicWriteIndex = getCyclicIndex(localWriteReserved+1);
+		logger.debug("inserting {} at {} ", e, cyclicWriteIndex);
+		array.set(cyclicWriteIndex, e);
+	
 		while (true) {
-			boolean success = inWritten.compareAndSet(priorInReserved, priorInReserved+1);
+			boolean success = writeCommitted.compareAndSet(localWriteReserved, localWriteReserved+1);
 			if (success) {
 				break;
 			} else {
@@ -59,7 +62,7 @@ public class CylicBuffer<E> {
 			}
 		}
 
-		logger.debug("producer inWritten.get()={}", inWritten.get());
+		logger.debug("producer writeCommitted.get()={}", writeCommitted.get());
 		
 		return true;
 		
@@ -67,22 +70,20 @@ public class CylicBuffer<E> {
 
 	public Optional<E> consume() {
 
+		final int priorOut = read.get();
 		
-		final int priorOut = outAtomic.get();
-		
-		if (isEmpty(inWritten.get(), priorOut)) {
+		if (isEmpty(writeCommitted.get(), priorOut)) {
 			return Optional.empty();
 		}
 
-		int nextOut = cyclicIncrement(priorOut);
+		int nextOut = getCyclicIndex(priorOut);
 		E e = array.get(nextOut);
 
-		boolean success = outAtomic.compareAndSet(priorOut, priorOut+1);
+		boolean success = read.compareAndSet(priorOut, priorOut+1);
 		if (!success) {
 			throw new IllegalStateException("only one consumer");
 		}
-		logger.debug("consuming {} at nextOut={}, priorInWritten={}", e, nextOut);//, priorInWritten);
-
+		logger.debug("consuming {} at nextOut={}", e, nextOut);
 
 		return Optional.of(e);
 	}
@@ -97,13 +98,13 @@ public class CylicBuffer<E> {
 		return count(currentIn, currentOut) == capacity;
 	}
 
-	private int count(int currentIn, int currentOut) {
-		int count = _count(currentIn, currentOut);
+	private int xcount(int currentIn, int currentOut) {
+		int count = count(currentIn, currentOut);
 		logger.trace("count = {} currentIn= {} currentOut= {}", count, currentIn, currentOut);
 		return count;
 	}
 
-	private int _count(int currentIn, int currentOut) {
+	private int count(int currentIn, int currentOut) {
 		if (currentIn == INITIAL_INDEX)
 			return 0;
 		if (currentOut == INITIAL_INDEX) {
@@ -121,9 +122,8 @@ public class CylicBuffer<E> {
 
 
 	
-	private int cyclicIncrement(int priorOut) {
-		int nextOut = priorOut + 1;
-		return nextOut & mask;
+	private int getCyclicIndex(int writeIndex) {
+		return writeIndex & mask;
 		
 //		if (nextOut == capacity) {
 //			nextOut = 0;
