@@ -17,8 +17,8 @@ public class CylicBuffer<E> {
 	final AtomicReferenceArray<E> array;
 
 	static final int INITIAL_INDEX = -1;
-	AtomicInteger writeReserved = new AtomicInteger(INITIAL_INDEX);
-	AtomicInteger writeCommitted = new AtomicInteger(INITIAL_INDEX);
+	AtomicInteger writeReserve = new AtomicInteger(INITIAL_INDEX);
+	AtomicInteger writeCommit = new AtomicInteger(INITIAL_INDEX);
 
 	AtomicInteger read = new AtomicInteger(INITIAL_INDEX);
 	
@@ -29,32 +29,34 @@ public class CylicBuffer<E> {
 	}
 
 	boolean insert(E e) {
-		int localWriteReserved;
-		int localWriteCommitted;
+		int localWriteReserve;
+		int localWriteCommit;
 
 		while (true) {
-			localWriteReserved = writeReserved.get();
-			localWriteCommitted = writeCommitted.get();
+			localWriteReserve = writeReserve.get();
+			localWriteCommit = writeCommit.get();
 
-			if(localWriteReserved != localWriteCommitted)
+			if(localWriteReserve != localWriteCommit)
 				continue;
 			
-			if (isFull(localWriteReserved, read.get())) {
+			if (isFull(localWriteReserve, read.get())) {
 				return false;
 			}
 			
-			boolean success = writeReserved.compareAndSet(localWriteReserved, localWriteReserved+1);
+			boolean success = writeReserve.compareAndSet(localWriteReserve, localWriteReserve+1);
 			if (success) {
 				break;
 			}
 		}
 
-		int cyclicWriteIndex = getCyclicIndex(localWriteReserved+1);
-		logger.debug("inserting {} at {} ", e, cyclicWriteIndex);
-		array.set(cyclicWriteIndex, e);
+		final int writeSuccessor = localWriteReserve+1;
+		
+		final int cyclicWriteSuccessor = getCyclicIndex(writeSuccessor);
+		logger.debug("inserting {} at {} ", e, cyclicWriteSuccessor);
+		array.set(cyclicWriteSuccessor, e);
 	
 		while (true) {
-			boolean success = writeCommitted.compareAndSet(localWriteReserved, localWriteReserved+1);
+			boolean success = writeCommit.compareAndSet(localWriteReserve, writeSuccessor);
 			if (success) {
 				break;
 			} else {
@@ -62,7 +64,7 @@ public class CylicBuffer<E> {
 			}
 		}
 
-		logger.debug("producer writeCommitted.get()={}", writeCommitted.get());
+		logger.debug("producer writeCommitted.get()={}", writeCommit.get());
 		
 		return true;
 		
@@ -72,7 +74,7 @@ public class CylicBuffer<E> {
 
 		final int priorOut = read.get();
 		
-		if (isEmpty(writeCommitted.get(), priorOut)) {
+		if (isEmpty(writeCommit.get(), priorOut)) {
 			return Optional.empty();
 		}
 
@@ -98,11 +100,6 @@ public class CylicBuffer<E> {
 		return count(currentIn, currentOut) == capacity;
 	}
 
-	private int xcount(int currentIn, int currentOut) {
-		int count = count(currentIn, currentOut);
-		logger.trace("count = {} currentIn= {} currentOut= {}", count, currentIn, currentOut);
-		return count;
-	}
 
 	private int count(int currentIn, int currentOut) {
 		if (currentIn == INITIAL_INDEX)
@@ -115,87 +112,14 @@ public class CylicBuffer<E> {
 			return (currentIn - currentOut);
 		else {
 			throw new IllegalStateException("currentIn = " + currentIn + " <  currentOut = "+currentOut);
-			//return currentOut - currentIn + 1;
 		}
 	}
-
 
 
 	
 	private int getCyclicIndex(int writeIndex) {
 		return writeIndex & mask;
-		
-//		if (nextOut == capacity) {
-//			nextOut = 0;
-//		}
-//		return nextOut;
-	}
-
-//	private void waitForSpace() {
-//		if(waitingForData.get())
-//			return;
-//		
-//		waitingForSpace.set(Boolean.TRUE);
-//
-//		try {
-//			lock.lock();
-//			spaceAvailableCondition.await();
-//		} catch (InterruptedException e1) {
-//			e1.printStackTrace();
-//		} finally {
-//			lock.unlock();
-//		}
-//	}
-//
-//	private void notifyOfConsumption() {
-//		if(!waitingForSpace.get())
-//			return;
-//	
-//		waitingForSpace.set(Boolean.FALSE);
-//		
-//		logger.trace("notifyOConsumption() triggered");
-//		try {
-//			lock.lock();
-//			spaceAvailableCondition.signalAll();
-//		} finally {
-//			lock.unlock();
-//		}
-//	}
-//	
-//	private void waitForData() {
-//		
-//		if(waitingForSpace.get())
-//			return;
-//		
-//		
-//		waitingForData.set(Boolean.TRUE);
-//
-//		try {
-//			lock.lock();
-//			dataAvailabilityCondition.await();
-//		} catch (InterruptedException e1) {
-//			e1.printStackTrace();
-//		} finally {
-//			lock.unlock();
-//		}
-//	}
-//
-//	
-//	private void notifyOfDataAvailability() {
-//		
-//		if(!waitingForData.get())
-//			return;
-//		
-//		logger.trace("notifyOfDataAvailability() triggered");
-//		waitingForData.set(Boolean.FALSE);
-//
-//		try {
-//			lock.lock();
-//			dataAvailabilityCondition.signalAll();
-//		} finally {
-//			lock.unlock();
-//		}
-//	}
+	}		
 
 
 

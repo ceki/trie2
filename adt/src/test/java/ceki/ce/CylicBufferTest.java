@@ -119,15 +119,15 @@ public class CylicBufferTest {
 
 	@Test
 	public void singleProducerSingleConsumer() throws InterruptedException {
-		nProducersSingleConsumer(1);
+		n_ProducersSingleConsumer(1);
 	}
 
 	@Test
 	public void twoProducerSingleConsumer() throws InterruptedException {
-		nProducersSingleConsumer(2);
+		n_ProducersSingleConsumer(2);
 	}
 
-	public void nProducersSingleConsumer(int totalProducers) throws InterruptedException {
+	public void n_ProducersSingleConsumer(int totalProducers) throws InterruptedException {
 
 		Thread[] producerThreads = new Thread[totalProducers];
 
