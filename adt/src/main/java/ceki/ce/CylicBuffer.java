@@ -1,5 +1,7 @@
 package ceki.ce;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -33,12 +35,12 @@ public class CylicBuffer<E> {
 		int localWriteCommit;
 
 		while (true) {
-			
+
 			localWriteReserve = writeReserve.get();
 			localWriteCommit = writeCommit.get();
 
 			//logger.debug("writeReserve={} writeCommit={}", writeReserve, writeCommit);
-			
+
 			if (localWriteReserve != localWriteCommit)
 				continue;
 
@@ -68,30 +70,41 @@ public class CylicBuffer<E> {
 			}
 		}
 
-		//logger.debug("producer writeCommitted.get()={}", writeCommit.get());
+		// logger.debug("producer writeCommitted.get()={}", writeCommit.get());
 
 		return true;
 
 	}
 
-	public Optional<E> consume() {
+	public Optional<List<E>> consume() {
 
-		final int priorOut = read.get();
+		final int priorRead = read.get();
+		final int localWriteCommit = writeCommit.get();
 
-		if (isEmpty(writeCommit.get(), priorOut)) {
+		if (isEmpty(localWriteCommit, priorRead)) {
 			return Optional.empty();
 		}
 
-		int nextOut = getCyclicIndex(priorOut+1);
-		E e = array.get(nextOut);
+		int nextOut = getCyclicIndex(priorRead + 1);
 
-		boolean success = read.compareAndSet(priorOut, priorOut + 1);
+		int count = count(localWriteCommit, priorRead);
+		//logger.debug("count="+count);
+		List<E> values = new ArrayList<>(count);
+
+		if (count < 0) {
+			System.out.println("count=" + count);
+		}
+		for (int i = 0; i < count; i++) {
+			values.add(array.get(getCyclicIndex(nextOut + i)));
+		}
+
+		boolean success = read.compareAndSet(priorRead, priorRead + count);
 		if (!success) {
 			throw new IllegalStateException("only one consumer");
 		}
-		//logger.debug("consuming {} at nextOut={}", e, nextOut);
+		//logger.debug("consumed {} values", count);
 
-		return Optional.of(e);
+		return Optional.of(values);
 	}
 
 	private boolean isEmpty(int in, int out) {
@@ -115,6 +128,10 @@ public class CylicBuffer<E> {
 
 	private int getCyclicIndex(int writeIndex) {
 		return writeIndex & mask;
+	}
+
+	public boolean isEmpty() {
+		return isEmpty(writeCommit.get(), read.get());
 	}
 
 }

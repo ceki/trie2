@@ -8,7 +8,7 @@
 		class="ch.qos.logback.core.ConsoleAppender">
 
 		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-			<level>INFO</level>
+			<level>DEBUG</level>
 		</filter>
 
 
@@ -51,7 +51,7 @@
 
 	<timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss" />
 
-	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
+<!-- 	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
 
 		<file>testFile-${bySecond}.log</file>
 		<append>true</append>
@@ -63,9 +63,9 @@
 			</pattern>
 		</encoder>
 	</appender>
+ -->
 
-
-	<root level="INFO">
+	<root level="WARN">
 		<appender-ref ref="STDOUT" />
 		<!-- <appender-ref ref="FILE" />
 		<appender-ref ref="EMAIL" /> -->
