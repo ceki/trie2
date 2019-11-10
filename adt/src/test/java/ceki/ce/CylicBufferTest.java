@@ -14,9 +14,9 @@ public class CylicBufferTest {
 	static Logger logger = LoggerFactory.getLogger(CylicBufferTest.class);
 
 	static int MAX_YEILD_COUNT = 1024;
-	static int TOTAL_RUN_LENGTH = 128 * 1024  ;
+	static int TOTAL_RUN_LENGTH = 16 * 1024 * 1024 ;
 
-	int capacity = 1;
+	int capacity = 256;
 
 	CylicBuffer<Integer> ce = new CylicBuffer<>(capacity);
 
@@ -38,6 +38,17 @@ public class CylicBufferTest {
 		}
 	}
 
+
+	@Test
+	public void singleProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(1);
+	}
+
+	@Test
+	public void twoProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(2);
+	}
+	
 	class ProducerRunnable implements Runnable {
 		
 		final int id;
@@ -117,15 +128,6 @@ public class CylicBufferTest {
 		}
 	};
 
-	@Test
-	public void singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(1);
-	}
-
-	@Test
-	public void twoProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(2);
-	}
 
 	public void n_ProducersSingleConsumer(int totalProducers) throws InterruptedException {
 

@@ -13,7 +13,7 @@ public class CylicBuffer<E> {
 
 	public final int capacity;
 	public final int mask;
-	
+
 	final AtomicReferenceArray<E> array;
 
 	static final int INITIAL_INDEX = -1;
@@ -21,7 +21,7 @@ public class CylicBuffer<E> {
 	AtomicInteger writeCommit = new AtomicInteger(INITIAL_INDEX);
 
 	AtomicInteger read = new AtomicInteger(INITIAL_INDEX);
-	
+
 	CylicBuffer(int capacity) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
@@ -33,28 +33,32 @@ public class CylicBuffer<E> {
 		int localWriteCommit;
 
 		while (true) {
+			
 			localWriteReserve = writeReserve.get();
 			localWriteCommit = writeCommit.get();
 
-			if(localWriteReserve != localWriteCommit)
-				continue;
+			//logger.debug("writeReserve={} writeCommit={}", writeReserve, writeCommit);
 			
+			if (localWriteReserve != localWriteCommit)
+				continue;
+
 			if (isFull(localWriteReserve, read.get())) {
 				return false;
 			}
-			
-			boolean success = writeReserve.compareAndSet(localWriteReserve, localWriteReserve+1);
+
+			// reserve the write index at old reserved value + 1
+			boolean success = writeReserve.compareAndSet(localWriteReserve, localWriteReserve + 1);
 			if (success) {
 				break;
 			}
 		}
 
-		final int writeSuccessor = localWriteReserve+1;
-		
+		final int writeSuccessor = localWriteReserve + 1;
+
 		final int cyclicWriteSuccessor = getCyclicIndex(writeSuccessor);
-		logger.debug("inserting {} at {} ", e, cyclicWriteSuccessor);
+		//logger.debug("inserting {} at {} ", e, cyclicWriteSuccessor);
 		array.set(cyclicWriteSuccessor, e);
-	
+
 		while (true) {
 			boolean success = writeCommit.compareAndSet(localWriteReserve, writeSuccessor);
 			if (success) {
@@ -64,64 +68,53 @@ public class CylicBuffer<E> {
 			}
 		}
 
-		logger.debug("producer writeCommitted.get()={}", writeCommit.get());
-		
+		//logger.debug("producer writeCommitted.get()={}", writeCommit.get());
+
 		return true;
-		
+
 	}
 
 	public Optional<E> consume() {
 
 		final int priorOut = read.get();
-		
+
 		if (isEmpty(writeCommit.get(), priorOut)) {
 			return Optional.empty();
 		}
 
-		int nextOut = getCyclicIndex(priorOut);
+		int nextOut = getCyclicIndex(priorOut+1);
 		E e = array.get(nextOut);
 
-		boolean success = read.compareAndSet(priorOut, priorOut+1);
+		boolean success = read.compareAndSet(priorOut, priorOut + 1);
 		if (!success) {
 			throw new IllegalStateException("only one consumer");
 		}
-		logger.debug("consuming {} at nextOut={}", e, nextOut);
+		//logger.debug("consuming {} at nextOut={}", e, nextOut);
 
 		return Optional.of(e);
 	}
 
-	
 	private boolean isEmpty(int in, int out) {
 		return count(in, out) == 0;
 
 	}
 
-	private boolean isFull(int currentIn, int currentOut) {
-		return count(currentIn, currentOut) == capacity;
+	private boolean isFull(int currentWrite, int currentRead) {
+		return count(currentWrite, currentRead) == capacity;
 	}
 
-
-	private int count(int currentIn, int currentOut) {
-		if (currentIn == INITIAL_INDEX)
+	private int count(int currentWrite, int currentRead) {
+		if (currentWrite == INITIAL_INDEX)
 			return 0;
-		if (currentOut == INITIAL_INDEX) {
-			return currentIn + 1;
+		if (currentRead == INITIAL_INDEX) {
+			return currentWrite + 1;
 		}
 
-		if (currentIn >= currentOut)
-			return (currentIn - currentOut);
-		else {
-			throw new IllegalStateException("currentIn = " + currentIn + " <  currentOut = "+currentOut);
-		}
+		return (currentWrite - currentRead);
 	}
 
-
-	
 	private int getCyclicIndex(int writeIndex) {
 		return writeIndex & mask;
-	}		
-
-
-
+	}
 
 }
