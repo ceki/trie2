@@ -3,6 +3,7 @@ package ceki.ce;
 import java.lang.reflect.Array;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,7 @@ public class CylicBuffer<E> {
 	public final int mask;
 
 	
-	final Container<E>[] array;
+	final AtomicReferenceArray<E> array;
 	final Class<E> clazz;
 
 	static final int MAX_YEILD_COUNT = 2048;
@@ -42,11 +43,7 @@ public class CylicBuffer<E> {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
 		this.clazz = clazz;
-		this.array = new Container[capacity];
-		for (int i = 0; i < capacity; i++) {
-			this.array[i] = new Container<E>();
-			this.array[i].e = null;
-		}
+		this.array = new AtomicReferenceArray<E>(capacity);
 	}
 
 	void put(E e) {
@@ -119,9 +116,8 @@ public class CylicBuffer<E> {
 
 		final int cyclicWriteSuccessor = getCyclicIndex(writeSuccessor);
 		// logger.debug("inserting {} at {} ", e, cyclicWriteSuccessor);
-		// array.set(cyclicWriteSuccessor, e);
-		array[cyclicWriteSuccessor].e = e;
-
+		array.set(cyclicWriteSuccessor, e);
+		
 		while (true) {
 			boolean success = writeCommit.compareAndSet(localWriteReserve, writeSuccessor);
 			if (success) {
@@ -148,16 +144,16 @@ public class CylicBuffer<E> {
 			return Optional.empty();
 		}
 
-		int nextOut = getCyclicIndex(priorRead + 1);
 
 		int count = count(localWriteCommit, priorRead);
 		// logger.debug("count="+count);
+		@SuppressWarnings("unchecked")
 		E[] values = (E[]) Array.newInstance(clazz, count);
 
 		sum += count;
 		readCount++;
 		for (int i = 0; i < count; i++) {
-			values[i] = array[getCyclicIndex(nextOut + i)].e;
+			values[i] = array.get(getCyclicIndex(priorRead + 1 + i));
 			// logger.debug("consumed value {}", values[i]);
 		}
 
