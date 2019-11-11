@@ -1,23 +1,21 @@
 package ceki.ce.signal;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport; 
 
 public class MixedSignalBarrier implements SignalBarier {
 
 	final int maxYieldCount;
-	final Thread thread;
 	long parkCount;
 	long signalCount;
 	long heavyParkedCount;
 	private int heavySignalCount = 0;
 		
-	AtomicBoolean parked = new AtomicBoolean(Boolean.FALSE);
+	ConcurrentLinkedQueue<Thread> threadsQueue = new ConcurrentLinkedQueue<>();
 	
 	int cycle = 0;
 
-	public MixedSignalBarrier(int maxYieldCount, Thread thread) {
-		this.thread = thread;
+	public MixedSignalBarrier(int maxYieldCount) {
 		this.maxYieldCount = maxYieldCount;
 	}
 	
@@ -29,10 +27,11 @@ public class MixedSignalBarrier implements SignalBarier {
 		if (cycle++ > maxYieldCount) {
 			cycle = 0;
 			heavyParkedCount++;
-			parked.set(Boolean.TRUE);
+			Thread currentThread = Thread.currentThread();
+			threadsQueue.add(currentThread);
 			LockSupport.parkNanos(this, duration);
 			
-			if (thread.isInterrupted())
+			if (currentThread.isInterrupted())
 				throw new InterruptedException();
 		}
 		Thread.yield();
@@ -43,9 +42,11 @@ public class MixedSignalBarrier implements SignalBarier {
 	public void signal() {
 		signalCount++;
 		
-		if(parked.compareAndSet(Boolean.TRUE, Boolean.FALSE)) {
-			heavySignalCount ++;
-			LockSupport.unpark(thread);
+		while (true) {
+			Thread t = threadsQueue.poll();
+			LockSupport.unpark(t);
+			if (t == null)
+				break;
 		}
 	}
 

@@ -1,13 +1,14 @@
 package ceki.ce;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Array;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import ceki.ce.signal.MixedSignalBarrier;
+import ceki.ce.signal.SignalBarier;
 
 public class CylicBuffer<E> {
 
@@ -16,20 +17,79 @@ public class CylicBuffer<E> {
 	public final int capacity;
 	public final int mask;
 
-	final AtomicReferenceArray<E> array;
+	
+	final Container<E>[] array;
+	final Class<E> clazz;
+
+	static final int MAX_YEILD_COUNT = 2048;
+
+	static final int PARK_DURATION = 1;
+	
+	
+	SignalBarier consumerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT);
+	SignalBarier producerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT);
+
+	public long sum = 0;
+	public long readCount = 0;
 
 	static final int INITIAL_INDEX = -1;
 	AtomicInteger writeReserve = new AtomicInteger(INITIAL_INDEX);
 	AtomicInteger writeCommit = new AtomicInteger(INITIAL_INDEX);
-
 	AtomicInteger read = new AtomicInteger(INITIAL_INDEX);
 
-	CylicBuffer(int capacity) {
+	@SuppressWarnings("unchecked")
+	CylicBuffer(int capacity, Class<E> clazz) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
-		this.array = new AtomicReferenceArray<E>(capacity);
+		this.clazz = clazz;
+		this.array = new Container[capacity];
+		for (int i = 0; i < capacity; i++) {
+			this.array[i] = new Container<E>();
+			this.array[i].e = null;
+		}
 	}
 
+	void put(E e) {
+		while (true) {
+			boolean empty = this.isEmpty();
+			boolean success = this.insert(e);
+			if (success) {
+				if (empty)
+					consumerSignalBarrier.signal();
+				break;
+			} else {
+				try {
+					producerSignalBarrier.parkNanos(PARK_DURATION);
+				} catch (InterruptedException ex) {
+					ex.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	int totalConsumed = 0;
+
+	public E[] take() {
+		while (true) {
+			boolean isFull = isFull();
+			Optional<E[]> result = this.consume();
+			if (result.isPresent()) {
+				if (isFull) {
+					producerSignalBarrier.signal();
+				}
+				E[] values = result.get();
+				totalConsumed += values.length;
+				return values;
+			} else {
+				try {
+					consumerSignalBarrier.parkNanos(PARK_DURATION);
+				} catch (InterruptedException ex) {
+					ex.printStackTrace();
+				}
+			}
+		}
+	}
+	
 	boolean insert(E e) {
 		int localWriteReserve;
 		int localWriteCommit;
@@ -39,7 +99,7 @@ public class CylicBuffer<E> {
 			localWriteReserve = writeReserve.get();
 			localWriteCommit = writeCommit.get();
 
-			//logger.debug("writeReserve={} writeCommit={}", writeReserve, writeCommit);
+			// logger.debug("writeReserve={} writeCommit={}", writeReserve, writeCommit);
 
 			if (localWriteReserve != localWriteCommit)
 				continue;
@@ -58,8 +118,9 @@ public class CylicBuffer<E> {
 		final int writeSuccessor = localWriteReserve + 1;
 
 		final int cyclicWriteSuccessor = getCyclicIndex(writeSuccessor);
-		//logger.debug("inserting {} at {} ", e, cyclicWriteSuccessor);
-		array.set(cyclicWriteSuccessor, e);
+		// logger.debug("inserting {} at {} ", e, cyclicWriteSuccessor);
+		// array.set(cyclicWriteSuccessor, e);
+		array[cyclicWriteSuccessor].e = e;
 
 		while (true) {
 			boolean success = writeCommit.compareAndSet(localWriteReserve, writeSuccessor);
@@ -76,7 +137,9 @@ public class CylicBuffer<E> {
 
 	}
 
-	public Optional<List<E>> consume() {
+	static Integer ONE = new Integer(1);
+
+	public Optional<E[]> consume() {
 
 		final int priorRead = read.get();
 		final int localWriteCommit = writeCommit.get();
@@ -88,35 +151,37 @@ public class CylicBuffer<E> {
 		int nextOut = getCyclicIndex(priorRead + 1);
 
 		int count = count(localWriteCommit, priorRead);
-		//logger.debug("count="+count);
-		List<E> values = new ArrayList<>(count);
+		// logger.debug("count="+count);
+		E[] values = (E[]) Array.newInstance(clazz, count);
 
-		if (count < 0) {
-			System.out.println("count=" + count);
-		}
+		sum += count;
+		readCount++;
 		for (int i = 0; i < count; i++) {
-			values.add(array.get(getCyclicIndex(nextOut + i)));
+			values[i] = array[getCyclicIndex(nextOut + i)].e;
+			// logger.debug("consumed value {}", values[i]);
 		}
 
 		boolean success = read.compareAndSet(priorRead, priorRead + count);
 		if (!success) {
 			throw new IllegalStateException("only one consumer");
 		}
-		//logger.debug("consumed {} values", count);
+		// logger.debug("consumed {} values", count);
 
 		return Optional.of(values);
 	}
 
-	private boolean isEmpty(int in, int out) {
+
+
+	final private boolean isEmpty(int in, int out) {
 		return count(in, out) == 0;
 
 	}
 
-	private boolean isFull(int currentWrite, int currentRead) {
+	final private boolean isFull(int currentWrite, int currentRead) {
 		return count(currentWrite, currentRead) == capacity;
 	}
 
-	private int count(int currentWrite, int currentRead) {
+	final private int count(int currentWrite, int currentRead) {
 		if (currentWrite == INITIAL_INDEX)
 			return 0;
 		if (currentRead == INITIAL_INDEX) {
@@ -134,4 +199,13 @@ public class CylicBuffer<E> {
 		return isEmpty(writeCommit.get(), read.get());
 	}
 
+	public boolean isFull() {
+		return isFull(writeCommit.get(), read.get());
+	}
+	
+	public void barriersDump() {
+		System.out.println("consumerSignalBarrier " + consumerSignalBarrier.dump());
+		System.out.println("producerSignalBarrier " + producerSignalBarrier.dump());
+
+	}
 }
