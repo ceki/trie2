@@ -1,0 +1,47 @@
+package ceki.ce;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+
+import ceki.ce.ICylicBuffer;
+
+public class ABQ<E> implements ICylicBuffer<E> {
+
+	int capacity;
+	
+	final ArrayBlockingQueue<E> abq;
+	Class<E> clazz;
+	
+	ABQ(int capacity, Class<E> clazz) {
+		this.clazz = clazz;
+		this.capacity = capacity;
+	
+		abq = new ArrayBlockingQueue<>(capacity);
+	}
+	@Override
+	
+	public E[] take() {
+		List<E> container = new ArrayList<E>();
+		abq.drainTo(container);
+		E[] values = (E[]) Array.newInstance(clazz, container.size());
+		for(int i = 0; i < container.size(); i++) {
+			values[i] = container.get(i);
+		}
+		return values;
+	}
+
+	@Override
+	public void put(E e) {
+		try {
+			abq.put(e);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		
+		
+	}
+	
+	
+}

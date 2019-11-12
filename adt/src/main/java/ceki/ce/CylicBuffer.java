@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
 import ceki.ce.signal.MixedSignalBarrier;
 import ceki.ce.signal.SignalBarier;
 
-public class CylicBuffer<E> {
-
+public class CylicBuffer<E> implements ICylicBuffer<E> {
+ 
 	static Logger logger = LoggerFactory.getLogger(CylicBuffer.class);
 
 	public final int capacity;
@@ -46,7 +46,8 @@ public class CylicBuffer<E> {
 		this.array = new AtomicReferenceArray<E>(capacity);
 	}
 
-	void put(E e) {
+	@Override
+	public void put(E e) {
 		while (true) {
 			boolean empty = this.isEmpty();
 			boolean success = this.insert(e);
@@ -66,6 +67,7 @@ public class CylicBuffer<E> {
 	
 	int totalConsumed = 0;
 
+	@Override
 	public E[] take() {
 		while (true) {
 			boolean isFull = isFull();
