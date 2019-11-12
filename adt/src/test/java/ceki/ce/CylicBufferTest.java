@@ -20,9 +20,9 @@ public class CylicBufferTest {
 	static Logger logger = LoggerFactory.getLogger(CylicBufferTest.class);
 
 	static int MAX_YEILD_COUNT = 2048;
-	static int TOTAL_RUN_LENGTH = 16 * 1024 * 1024;
+	static int TOTAL_RUN_LENGTH = 20 * 1000 * 1000;
 
-	int capacity = 256;
+	int capacity = 1024;
 
 	CylicBuffer<Integer> ce = new CylicBuffer<>(capacity, Integer.class);
 
@@ -63,8 +63,19 @@ public class CylicBufferTest {
 		n_ProducersSingleConsumer(2);
 	}
 
+//	@Test
+//	public void _8ProducerSingleConsumer() throws InterruptedException {
+//		n_ProducersSingleConsumer(8);
+//	}
+
+	
+//	@Test
+//	public void _32ProducerSingleConsumer() throws InterruptedException {
+//		n_ProducersSingleConsumer(32);
+//	}
+
 	@Test
-	public void _16ProducerSingleConsumer() throws InterruptedException {
+	public void _64ProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(64);
 	}
 
@@ -159,6 +170,16 @@ public class CylicBufferTest {
 				"totalProducers=" + totalProducers + " sum " + ce.sum + " avg=" + (ce.sum * 1.0 / ce.readCount));
 	
 		ce.barriersDump();
+		
+		//dumpExpected(consumerRunnable.expected);
+	}
+
+	private void dumpExpected(int[] expected) {
+		
+		for(int i = 0; i < expected.length; i++) {
+			System.out.println("expected["+i+"]="+expected[i]);
+		}
+		
 	}
 
 	static void sleep(int duration) {
