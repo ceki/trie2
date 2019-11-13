@@ -173,8 +173,9 @@ public class CylicBufferTest {
 		final int totalProducers;
 		final int totalProducersMask;
 
-		final int expected[];
-
+		int expected[];
+		public boolean failed = false;
+		
 		ConsumerRunnable(ICylicBuffer<Integer> icb, int totalProducers) {
 			this.icb = icb;
 			this.totalProducers = totalProducers;
@@ -203,6 +204,7 @@ public class CylicBufferTest {
 
 			if (exp != r) {
 				logger.warn("result = {} != expected = {} ", r, exp);
+				failed = true;
 				fail();
 			}
 			expected[expectIndex] += totalProducers;
@@ -241,6 +243,10 @@ public class CylicBufferTest {
 				"totalProducers=" + totalProducers);
  		icb.barriersDump();
 
+ 		if(consumerRunnable.failed) {
+ 			fail();
+ 		}
+ 		
 		// dumpExpected(consumerRunnable.expected);
 	}
 

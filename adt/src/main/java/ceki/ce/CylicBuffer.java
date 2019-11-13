@@ -20,7 +20,6 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	final Class<E> clazz;
 
 	static final int MAX_YEILD_COUNT = 4;
-
 	static final int PARK_DURATION = 1;
 
 	SignalBarier consumerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT, PARK_DURATION);
@@ -109,7 +108,7 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 			localWriteReserve = writeReserve.getAcquire();
 			localWriteCommit = writeCommit.getAcquire();
 
-			// logger.debug("writeReserve={} writeCommit={}", writeReserve, writeCommit);
+			logger.debug("insert - writeReserve={} writeCommit={}", writeReserve, writeCommit);
 
 			if (localWriteReserve != localWriteCommit)
 				continue;
