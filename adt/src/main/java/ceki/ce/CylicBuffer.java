@@ -55,12 +55,13 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	@Override
 	public void put(E e) {
 		int count = 0;
-		
+
 		while (true) {
 
 			long localReadCache = read.getAcquire();
-			boolean empty = this.isEmptyCurried(localReadCache);
-			boolean success = this.insert(e,localReadCache);
+			long locaWriteCache = writeCommit.getAcquire();
+			boolean empty = this.isEmpty(locaWriteCache, localReadCache);
+			boolean success = this.insert(e, locaWriteCache, localReadCache);
 			if (success) {
 				if (empty)
 					consumerSignalBarrier.signal();
@@ -81,8 +82,10 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	public E take() {
 		int count = 0;
 		while (true) {
-			boolean wasFull = isFull();
-			E result = this.consume();
+			long cachedWriteCommit = writeCommit.getAcquire();
+			long cachedRead = read.getAcquire();
+			boolean wasFull = isFull(cachedWriteCommit, cachedRead);
+			E result = this.consume(cachedWriteCommit, cachedRead);
 			if (result != null) {
 				if (wasFull) {
 					producerSignalBarrier.signal();
@@ -99,26 +102,32 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 		}
 	}
 
-	private boolean insert(E e, long readCache) {
+	private boolean insert(E e, long writeCommitCache, long readCache) {
 		long localWriteReserve;
-		long localWriteCommit;
+		long localWriteCommit = writeCommitCache;
+		long localReadCache = readCache;
 
 		while (true) {
 
 			localWriteReserve = writeReserve.getAcquire();
-			localWriteCommit = writeCommit.getAcquire();
+			
+			// logger.debug("insert/while - writeReserve={} writeCommit={}", writeReserve,
+			// writeCommit);
 
-			logger.debug("insert - writeReserve={} writeCommit={}", writeReserve, writeCommit);
-
-			if (localWriteReserve != localWriteCommit)
+			if (localWriteReserve != localWriteCommit) {
+				localWriteCommit = writeCommit.getAcquire();
+				if(localWriteReserve != localWriteCommit)
 				continue;
+			}
 
-			if (isFull(localWriteReserve, readCache)) {
-				if (isFull(localWriteReserve, read.getAcquire())) {
+			if (isFull(localWriteReserve, localReadCache)) {
+				localReadCache = read.getAcquire();
+				if (isFull(localWriteReserve, localReadCache)) {
+					// logger.debug("insert/ full - localWriteReserve={} localReadCache={}",
+					// localWriteReserve, localReadCache);
 					return false;
 				}
 			}
-			
 
 			// reserve the write index at old reserved value + 1
 			boolean success = writeReserve.compareAndSet(localWriteReserve, localWriteReserve + 1);
@@ -129,27 +138,39 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 
 		final long writeSuccessor = localWriteCommit + 1;
 		final int cyclicWriteSuccessor = getCyclicIndex(writeSuccessor);
+
+		// logger.debug("inserted e={} at next={}", e, writeSuccessor);
+
 		array.set(cyclicWriteSuccessor, e);
-		writeCommit.setRelease(writeSuccessor);
+		writeCommit.set(writeSuccessor);
 
 		return true;
 
 	}
 
-	private E consume() {
+	private E consume(long cachedWriteCommit, long cachedRead) {
 
-		final long priorRead = read.getAcquire();
-		final long localWriteCommit = writeCommit.getAcquire();
+		long localRead = cachedRead;
+				
+		long localWriteCommit = cachedWriteCommit;
 
-		if (isEmpty(localWriteCommit, priorRead)) {
-			return null;
+		// logger.debug("consumer priorRead={} localWriteCommit={}", priorRead,
+		// localWriteCommit);
+
+		if (isEmpty(localWriteCommit, localRead)) {
+			localWriteCommit = writeCommit.getAcquire();			
+			localRead = read.getAcquire();
+			if (isEmpty(localWriteCommit, localRead)) {
+				return null;
+			}
+
 		}
 
-		
-		final long next = priorRead + 1;
+		final long next = localRead + 1;
 		final int cyclicNext = getCyclicIndex(next);
 		E e = array.get(cyclicNext);
-		//array.setRelease(cyclicNext, null);
+		// logger.debug("consuming e={} at next={}", e, next);
+		// array.setRelease(cyclicNext, null);
 		read.setRelease(next);
 		return e;
 	}
@@ -159,8 +180,13 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 
 	}
 
+	public boolean isFull() {
+		return isFull(writeCommit.getAcquire(), read.getAcquire());
+	}
+
 	final private boolean isFull(long currentWrite, long currentRead) {
-		return count(currentWrite, currentRead) == capacity;
+		// allow for stale values of currentRead
+		return count(currentWrite, currentRead) >= capacity;
 	}
 
 	final private int count(long currentWrite, long currentRead) {
@@ -177,17 +203,14 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 		return (int) writeIndex & mask;
 	}
 
-	private boolean isEmptyCurried(long localReadCache) {
-		return isEmpty(writeCommit.getOpaque(), localReadCache);
-	}
-	
+//	private boolean isEmptyCurried(long localReadCache) {
+//		return isEmpty(writeCommit.getAcquire(), localReadCache);
+//	}
+
 	public boolean isEmpty() {
-		return isEmpty(writeCommit.getOpaque(), read.getOpaque());
+		return isEmpty(writeCommit.getAcquire(), read.getAcquire());
 	}
 
-	public boolean isFull() {
-		return isFull(writeCommit.getOpaque(), read.getOpaque());
-	}
 
 	public void barriersDump() {
 		System.out.println("consumerSignalBarrier " + consumerSignalBarrier.dump());

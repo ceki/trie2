@@ -14,7 +14,7 @@ public class CylicBufferTest {
 
 	static int TOTAL_RUN_LENGTH = 20_000_000;
 
-	final int capacity = 1; //*16;
+	final int capacity = 16;
 
 	CylicBuffer<Integer> ce = new CylicBuffer<>(capacity, Integer.class);
 	final ABQ<Integer> abq = new ABQ<>(capacity, Integer.class);
@@ -203,9 +203,8 @@ public class CylicBufferTest {
 			int exp = expected[expectIndex];
 
 			if (exp != r) {
-				logger.warn("result = {} != expected = {} ", r, exp);
-				failed = true;
-				fail();
+				logger.error("result = {} != expected = {} ", r, exp);
+				failed = true;				
 			}
 			expected[expectIndex] += totalProducers;
 		}
