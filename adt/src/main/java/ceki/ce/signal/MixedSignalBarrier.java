@@ -1,32 +1,28 @@
 package ceki.ce.signal;
 
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
 public class MixedSignalBarrier implements SignalBarier {
 
 	final int maxYieldCount;
-	int busyWait;
+	final int duration;
+	
 	int parkedCount;
-	private int unparkCount = 0;
-
+	int unparkCount = 0;
+	volatile int totalAwaitCalls  = 0;
+	
 	ConcurrentLinkedQueue<Thread> threadsQueue = new ConcurrentLinkedQueue<>();
 
-	
-	int cycle = 0;
-
-	public MixedSignalBarrier(int maxYieldCount) {
+	public MixedSignalBarrier(int maxYieldCount, int duration) {
 		this.maxYieldCount = maxYieldCount;
+		this.duration = duration;
 	}
 
 	@Override
-	public void parkNanos(long duration) throws InterruptedException {
-		busyWait++;
-
-		if (cycle++ > maxYieldCount) {
-			cycle = 0;
-			parkedCount++;
+	public void await(int count) throws InterruptedException {
+		totalAwaitCalls++;
+		if ((count & maxYieldCount) == maxYieldCount) {
 			Thread currentThread = Thread.currentThread();
 			threadsQueue.add(currentThread);
 			LockSupport.parkNanos(this, duration);
@@ -54,7 +50,8 @@ public class MixedSignalBarrier implements SignalBarier {
 
 	@Override
 	public String dump() {
-		return " busyWait=" + busyWait + " parkedCount=" + parkedCount + " unparkCount=" + unparkCount;
+		//return "";
+		return "totalAwaitCalls="+totalAwaitCalls+" parkedCount=" + parkedCount + " unparkCount=" + unparkCount;
 	}
 
 	static void sleep(int duration) {

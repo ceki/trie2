@@ -1,12 +1,13 @@
 package ceki.ce.signal;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class BusyWaitSignalBarrier implements SignalBarier {
 
 	final int maxYieldCount;
-	long parkCount;
+	volatile long parkCount;
 	long signalCount;
-	long heavyParkedCount;
-	int cycle = 0;
+	AtomicInteger sleepCount = new AtomicInteger(0);
 
 	public BusyWaitSignalBarrier(int maxYieldCount) {
 		this.maxYieldCount = maxYieldCount;
@@ -19,11 +20,10 @@ public class BusyWaitSignalBarrier implements SignalBarier {
 	}
 
 	@Override
-	public void parkNanos(long duration) throws InterruptedException {
+	public void await(int count) throws InterruptedException {
 		parkCount++;
-		if (cycle++ > maxYieldCount) {
-			cycle = 0;
-			heavyParkedCount++;
+		if ((count & maxYieldCount) == maxYieldCount) {
+			sleepCount.getAndIncrement();
 			sleep(1);
 		}
 		Thread.yield();
@@ -39,6 +39,6 @@ public class BusyWaitSignalBarrier implements SignalBarier {
 
 	@Override
 	public String dump() {
-		return " parkCount=" + parkCount + " heavyParkedCount="+heavyParkedCount+" signalCount="+signalCount;
+		return " parkCount=" + parkCount + " sleepCount="+sleepCount+" signalCount="+signalCount;
 	}
 }

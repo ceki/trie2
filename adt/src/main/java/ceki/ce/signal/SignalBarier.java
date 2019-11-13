@@ -4,7 +4,7 @@ public interface SignalBarier {
 
 	void signal();
 
-	void parkNanos(long duration) throws InterruptedException;
+	void await(int count) throws InterruptedException;
 
 	String dump();
 

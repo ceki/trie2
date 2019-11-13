@@ -3,8 +3,6 @@ package ceki.ce;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Optional;
-
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -14,43 +12,41 @@ public class CylicBufferTest {
 
 	static Logger logger = LoggerFactory.getLogger(CylicBufferTest.class);
 
-	static int MAX_YEILD_COUNT = 2048;
 	static int TOTAL_RUN_LENGTH = 20_000_000;
 
-	int capacity = 256;
+	final int capacity = 1; //*16;
 
 	CylicBuffer<Integer> ce = new CylicBuffer<>(capacity, Integer.class);
 	final ABQ<Integer> abq = new ABQ<>(capacity, Integer.class);
 
 	@Test
 	public void smoke() {
-		ce.insert(1);
-		Optional<Integer[]> val = ce.consume();
+		ce.put(1);
+		Integer val = ce.take();
 		Integer expected = 1;
-		assertEquals(expected, val.get()[0]);
+		assertEquals(expected, val);
 	}
 
+	@Ignore
 	@Test
 	public void smokeABQ() {
 		abq.put(1);
-		Integer[] val = abq.take();
+		Integer val = abq.take();
 		Integer expected = 1;
-		assertEquals(expected, val[0]);
+		assertEquals(expected, val);
 	}
 
+	@Ignore
 	@Test
 	public void smokeInOut() {
-		for (int i = 0; i <= capacity + 1;) {
-			ce.insert(i);
-			Optional<Integer[]> val = ce.consume();
-			if (val.isPresent()) {
-				Integer[] valArray = val.get();
+		for (int i = 0; i <= capacity + 1; i++) {
+			ce.put(i);
+			Integer val = ce.take();
+			if (val != null) {
 				// System.out.println("valArray.length=" + valArray.length);
-				for (int j = 0; j < valArray.length; j++) {
-					Integer expected = i + j;
-					assertEquals(expected, valArray[j]);
-				}
-				i += valArray.length;
+				//for (int j = 0; j < valArray.length; j++) {
+					Integer expected = i;
+					assertEquals(expected, val);
 			} else {
 				fail("empty return value");
 			}
@@ -62,34 +58,69 @@ public class CylicBufferTest {
 	public void abq_smokeInOut() {
 		for (int i = 0; i <= capacity + 1;) {
 			abq.put(i);
-			Integer[] valArray = abq.take();
-			if(valArray != null) {
-				for (int j = 0; j < valArray.length; j++) {
-					Integer expected = i + j;
-					assertEquals(expected, valArray[j]);
-				}
-				i += valArray.length;
+			Integer val = abq.take();
+			if(val != null) {
+				//for (int j = 0; j < valArray.length; j++) {
+					Integer expected = i ;
+					assertEquals(expected, val);
+				//}
+				i ++; //= valArray.length;
 			} else {
 				fail("empty return value");
 			}
 		}
 	}
 	
+	
 	@Test
 	public void noLock_singleProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 1);
 	}
 
+	@Ignore
 	@Test
-	public void abq_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(abq, 1);
+	public void _noLock_singleProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(ce, 1);
 	}
+
+	
 
 	@Test
 	public void noLock_twoProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 2);
 	}
+	
 
+	@Test
+	public void noLock_4ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(ce, 4);
+	}
+
+	@Ignore
+	@Test
+	public void noLock_8ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(ce, 8);
+	}
+
+	@Ignore
+	@Test
+	public void nolock_32_ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(ce, 32);
+	}
+
+	@Ignore
+	@Test
+	public void noLock_64ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(ce, 64);
+	}
+
+	@Ignore
+	@Test
+	public void abq_singleProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(abq, 1);
+	}
+
+	@Ignore
 	@Test
 	public void abq_twoProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(abq, 2);
@@ -97,27 +128,21 @@ public class CylicBufferTest {
 
 	@Ignore
 	@Test
-	public void _8ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 8);
-	}
-
-	@Test
-	public void nolock_32_ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 32);
-	}
-
-	@Test
-	public void abq_32ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(abq, 32);
+	public void abq_4ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(abq, 4);
 	}
 	
 	@Ignore
 	@Test
-	public void _64ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 64);
+	public void abq_32ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(abq, 32);
 	}
 
-	static final Integer ONE = new Integer(1);
+	@Ignore
+	@Test
+	public void abq_64ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(abq, 64);
+	}
 
 	class ProducerRunnable implements Runnable {
 
@@ -135,6 +160,8 @@ public class CylicBufferTest {
 			int runLen = TOTAL_RUN_LENGTH / totalProducers;
 			for (int i = 0; i < runLen; i++) {
 				icb.put(id + i * totalProducers);
+				//icb.put(ONE);
+				
 			}
 			logger.info("Exiting producerRunnable");
 		}
@@ -161,12 +188,10 @@ public class CylicBufferTest {
 			int totalConsumed = 0;
 			while (totalConsumed < TOTAL_RUN_LENGTH) {
 
-				Integer[] values = icb.take();
-				if (values != null) {
-					totalConsumed += values.length;
-					for (Integer v : values) {
-						validate(v);
-					}
+				Integer value = icb.take();
+				if (value != null) {
+					totalConsumed ++; //= values.length;
+					validate(value);
 				}
 			}
 			logger.info("Exiting consumerRunnable");
@@ -185,6 +210,7 @@ public class CylicBufferTest {
 
 	};
 
+	static final Integer ONE = 1;
 	public void n_ProducersSingleConsumer(ICylicBuffer<Integer> icb, int totalProducers) throws InterruptedException {
 
 		Thread[] producerThreads = new Thread[totalProducers];
@@ -210,11 +236,10 @@ public class CylicBufferTest {
 
 		consumer.join();
 
-//		System.out.println("==========================================");
-//		System.out.println(
-//				"totalProducers=" + totalProducers + " sum " + ce.sum + " avg=" + (ce.sum * 1.0 / ce.readCount));
-
-		//ce.barriersDump();
+		System.out.println("==========================================");
+		System.out.println(
+				"totalProducers=" + totalProducers);
+ 		icb.barriersDump();
 
 		// dumpExpected(consumerRunnable.expected);
 	}

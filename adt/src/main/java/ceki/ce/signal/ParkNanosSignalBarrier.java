@@ -3,17 +3,20 @@ package ceki.ce.signal;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
-public class DefaultSignalBarrier implements SignalBarier {
+public class ParkNanosSignalBarrier implements SignalBarier {
 
 	long parkCount;
 	long signalCount;
 	ConcurrentLinkedQueue<Thread> threadsQueue = new ConcurrentLinkedQueue<>();
 
-	public DefaultSignalBarrier() {
+	final int duration;
+	
+	public ParkNanosSignalBarrier(int duration) {
+		this.duration = duration;
 	}
 
 	@Override
-	public void parkNanos(long duration) throws InterruptedException {
+	public void await(int count) throws InterruptedException {
 		parkCount++;
 		Thread currentThread = Thread.currentThread();
 		threadsQueue.add(currentThread);
