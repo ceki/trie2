@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ceki.ce.signal.MixedSignalBarrier;
+import ceki.ce.signal.MixedSignalBarrierWithBackOff;
+import ceki.ce.signal.ParkNanosSignalBarrier;
 import ceki.ce.signal.SignalBarier;
 
 public class CylicBuffer<E> implements ICylicBuffer<E> {
@@ -19,14 +21,14 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	final AtomicReferenceArray<E> array;
 	final Class<E> clazz;
 
-	static final int MAX_YEILD_COUNT = 4;
-	static final int PARK_DURATION = 1;
+	static final int MAX_YEILD_COUNT = 1;
+	static final int PARK_DURATION = 10000;
 
-	SignalBarier consumerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT, PARK_DURATION);
-	SignalBarier producerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT, PARK_DURATION);
+	//SignalBarier consumerSignalBarrier = new MixedSignalBarrierWithBackOff(MAX_YEILD_COUNT, PARK_DURATION);
+	//SignalBarier producerSignalBarrier = new MixedSignalBarrierWithBackOff(MAX_YEILD_COUNT, PARK_DURATION);
 
-//	SignalBarier consumerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
-//	SignalBarier producerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
+	SignalBarier consumerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
+	SignalBarier producerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
 
 //	SignalBarier consumerSignalBarrier = new BusyWaitSignalBarrier(MAX_YEILD_COUNT);
 //	SignalBarier producerSignalBarrier = new BusyWaitSignalBarrier(MAX_YEILD_COUNT);
@@ -52,6 +54,8 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 		this.array = new AtomicReferenceArray<E>(capacity);
 	}
 
+	
+	int lastPutCount = 0;
 	@Override
 	public void put(E e) {
 		int count = 0;
@@ -63,12 +67,14 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 			boolean empty = this.isEmpty(locaWriteCache, localReadCache);
 			boolean success = this.insert(e, locaWriteCache, localReadCache);
 			if (success) {
+				lastPutCount = count;
 				if (empty)
 					consumerSignalBarrier.signal();
 				break;
 			} else {
+				count++;
 				try {
-					producerSignalBarrier.await(count++);
+					producerSignalBarrier.await(lastPutCount);
 				} catch (InterruptedException ex) {
 					ex.printStackTrace();
 				}
@@ -76,8 +82,9 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 		}
 	}
 
-	int totalConsumed = 0;
-
+	
+	 int lastTakeCount = 1;
+	
 	@Override
 	public E take() {
 		int count = 0;
@@ -91,10 +98,11 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 					producerSignalBarrier.signal();
 				}
 				// totalConsumed += result.length;
+				lastTakeCount = count;
 				return result;
 			} else {
 				try {
-					consumerSignalBarrier.await(count);
+					consumerSignalBarrier.await(lastTakeCount);
 				} catch (InterruptedException ex) {
 					ex.printStackTrace();
 				}

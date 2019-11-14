@@ -3,26 +3,28 @@ package ceki.ce.signal;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
-public class MixedSignalBarrier implements SignalBarier {
+public class MixedSignalBarrierWithBackOff implements SignalBarier {
 
 	final int maxYieldCount;
 	final int duration;
 
 	int parkedCount;
 	int unparkCount = 0;
-	volatile int totalAwaitCalls = 0;
+	int totalAwaitCalls = 0;
 
 	ConcurrentLinkedQueue<Thread> threadsQueue = new ConcurrentLinkedQueue<>();
 
-	public MixedSignalBarrier(int maxYieldCount, int duration) {
+	public MixedSignalBarrierWithBackOff(int maxYieldCount, int duration) {
 		this.maxYieldCount = maxYieldCount;
 		this.duration = duration;
 	}
 
 	@Override
 	public void await(int count) throws InterruptedException {
+		
 		totalAwaitCalls++;
-		if ((count & maxYieldCount) == maxYieldCount) {
+		if ( count > maxYieldCount) {
+			parkedCount++;
 			Thread currentThread = Thread.currentThread();
 			threadsQueue.add(currentThread);
 			LockSupport.parkNanos(this, duration);
@@ -30,6 +32,10 @@ public class MixedSignalBarrier implements SignalBarier {
 			if (currentThread.isInterrupted())
 				throw new InterruptedException();
 		} else {
+			int bitCount = BitUtil.leftMostBit(count) + 1;
+			//if(count> 0)
+				//System.out.println(Thread.currentThread().getName()+ " count="+count+" bitCount="+bitCount);
+			for (int i = 0; i < bitCount; i++)
 				Thread.yield();
 		}
 	}

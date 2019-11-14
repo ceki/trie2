@@ -1,5 +1,7 @@
 package ceki.ce;
 
+import ceki.ce.signal.SignalBarier;
+
 public interface ICylicBuffer<E> {
 
 	E take();
@@ -8,4 +10,13 @@ public interface ICylicBuffer<E> {
 
 	default void barriersDump() {
 	}
+	
+	default void await(SignalBarier sb, int count) {
+		try {
+			sb.await(count);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 }
+ 

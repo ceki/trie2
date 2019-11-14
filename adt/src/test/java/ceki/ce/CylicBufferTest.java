@@ -8,17 +8,21 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ceki.ce.marked.MPSC_CylicBuffer;
+
 public class CylicBufferTest {
 
 	static Logger logger = LoggerFactory.getLogger(CylicBufferTest.class);
 
-	static int TOTAL_RUN_LENGTH = 20_000_000;
+	static int TOTAL_RUN_LENGTH = 26_000_000;
 
-	final int capacity = 16;
+	final int capacity = 1024*2;
 
 	CylicBuffer<Integer> ce = new CylicBuffer<>(capacity, Integer.class);
+	SPSCCylicBuffer<Integer> spscce = new SPSCCylicBuffer<>(capacity);
 	final ABQ<Integer> abq = new ABQ<>(capacity, Integer.class);
-
+	MPSC_CylicBuffer<Integer> mpsc = new MPSC_CylicBuffer<>(capacity);
+	
 	@Test
 	public void smoke() {
 		ce.put(1);
@@ -36,12 +40,18 @@ public class CylicBufferTest {
 		assertEquals(expected, val);
 	}
 
-	@Ignore
 	@Test
-	public void smokeInOut() {
+	public void smokeMPSC() {
+		mpsc.put(1);
+		Integer val = mpsc.take();
+		Integer expected = 1;
+		assertEquals(expected, val);
+	}
+
+	public void smokeInOut(ICylicBuffer<Integer> icb) {
 		for (int i = 0; i <= capacity + 1; i++) {
-			ce.put(i);
-			Integer val = ce.take();
+			icb.put(i);
+			Integer val = icb.take();
 			if (val != null) {
 				// System.out.println("valArray.length=" + valArray.length);
 				//for (int j = 0; j < valArray.length; j++) {
@@ -54,24 +64,45 @@ public class CylicBufferTest {
 	}
 
 	
+	@Ignore
+	@Test
+	public void smokeInOut() {
+		smokeInOut(ce);
+	}
+
+	
 	@Test
 	public void abq_smokeInOut() {
-		for (int i = 0; i <= capacity + 1;) {
-			abq.put(i);
-			Integer val = abq.take();
-			if(val != null) {
-				//for (int j = 0; j < valArray.length; j++) {
-					Integer expected = i ;
-					assertEquals(expected, val);
-				//}
-				i ++; //= valArray.length;
-			} else {
-				fail("empty return value");
-			}
-		}
+		smokeInOut(abq);
+	}
+	
+	@Test
+	public void mpmc_smokeInOut() {
+		smokeInOut(mpsc);
+	}
+
+	@Test
+	public void mpsc_singleProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(mpsc, 1);
+	}
+
+	@Test
+	public void mpsc_2ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(mpsc, 2);
+	}
+	
+	@Test
+	public void mpsc_4ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(mpsc, 4);
+	}
+	
+	@Test
+	public void mpsc_8ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(mpsc, 8);
 	}
 	
 	
+	@Ignore
 	@Test
 	public void noLock_singleProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 1);
@@ -79,18 +110,25 @@ public class CylicBufferTest {
 
 	@Ignore
 	@Test
+	public void spscce_singleProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(spscce, 1);
+	}
+
+	
+	@Ignore
+	@Test
 	public void _noLock_singleProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 1);
 	}
 
 	
-
+	@Ignore
 	@Test
 	public void noLock_twoProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 2);
 	}
 	
-
+	@Ignore
 	@Test
 	public void noLock_4ProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 4);
@@ -160,8 +198,6 @@ public class CylicBufferTest {
 			int runLen = TOTAL_RUN_LENGTH / totalProducers;
 			for (int i = 0; i < runLen; i++) {
 				icb.put(id + i * totalProducers);
-				//icb.put(ONE);
-				
 			}
 			logger.info("Exiting producerRunnable");
 		}
@@ -188,11 +224,10 @@ public class CylicBufferTest {
 		public void run() {
 			int totalConsumed = 0;
 			while (totalConsumed < TOTAL_RUN_LENGTH) {
-
 				Integer value = icb.take();
 				if (value != null) {
 					totalConsumed ++; //= values.length;
-					validate(value);
+					//validate(value);
 				}
 			}
 			logger.info("Exiting consumerRunnable");
@@ -211,13 +246,9 @@ public class CylicBufferTest {
 
 	};
 
-	static final Integer ONE = 1;
 	public void n_ProducersSingleConsumer(ICylicBuffer<Integer> icb, int totalProducers) throws InterruptedException {
 
 		Thread[] producerThreads = new Thread[totalProducers];
-		// SignalBarier consumerSignalBarrier = new
-		// BusyWaitSignalBarrier(MAX_YEILD_COUNT);
-		// SignalBarier consumerSignalBarrier = new DefaultSignalBarrier();
 
 		ConsumerRunnable consumerRunnable = new ConsumerRunnable(icb, totalProducers);
 		Thread consumer = new Thread(consumerRunnable);
@@ -238,8 +269,7 @@ public class CylicBufferTest {
 		consumer.join();
 
 		System.out.println("==========================================");
-		System.out.println(
-				"totalProducers=" + totalProducers);
+		System.out.println(icb.getClass() + "  totalProducers=" + totalProducers);
  		icb.barriersDump();
 
  		if(consumerRunnable.failed) {
