@@ -84,69 +84,23 @@ public class CylicBufferTest {
 		smokeInOut(nullCheckingRB);
 	}
 
+	@Ignore
 	@Test
-	public void mpsc_singleProducerSingleConsumer() throws InterruptedException {
+	public void nullCheckingRB_1() throws InterruptedException {
 		n_ProducersSingleConsumer(nullCheckingRB, 1);
 	}
 
 	@Ignore
 	@Test
-	public void noLock_singleProducerSingleConsumer() throws InterruptedException {
+	public void doubleWriterLockedRB() throws InterruptedException {
 		n_ProducersSingleConsumer(doubleWriterLockedRB, 1);
 	}
 
-	@Ignore
-	@Test
-	public void spscce_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(spscRB, 1);
-	}
 
 	@Ignore
 	@Test
-	public void _noLock_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(doubleWriterLockedRB, 1);
-	}
-
-	@Ignore
-	@Test
-	public void noLock_twoProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(doubleWriterLockedRB, 2);
-	}
-
-	@Ignore
-	@Test
-	public void noLock_4ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(doubleWriterLockedRB, 4);
-	}
-
-	@Ignore
-	@Test
-	public void noLock_8ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(doubleWriterLockedRB, 8);
-	}
-
-	@Ignore
-	@Test
-	public void nolock_32_ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(doubleWriterLockedRB, 32);
-	}
-
-	@Ignore
-	@Test
-	public void noLock_64ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(doubleWriterLockedRB, 64);
-	}
-
-	@Ignore
-	@Test
-	public void abq_singleProducerSingleConsumer() throws InterruptedException {
+	public void abq1() throws InterruptedException {
 		n_ProducersSingleConsumer(abq, 1);
-	}
-
-	@Ignore
-	@Test
-	public void abq_twoProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(abq, 2);
 	}
 
 
@@ -154,7 +108,7 @@ public class CylicBufferTest {
 	public void all() {
 
 		//RingBuffer<Integer> icbArray[] = new RingBuffer[] { ce, spscce, mpsc, abq };
-		RingBuffer<Integer> icbArray[] = new RingBuffer[] { doubleWriterLockedRB, nullCheckingRB };
+		RingBuffer<Integer> icbArray[] = new RingBuffer[] { nullCheckingRB };
 
 		
 		for (RingBuffer<Integer> icq : icbArray) {
@@ -214,7 +168,7 @@ public class CylicBufferTest {
 				Integer value = icb.take();
 				if (value != null) {
 					totalConsumed++; // = values.length;
-					// validate(value);
+					validate(value);
 				}
 			}
 			logger.info("Exiting consumerRunnable");
@@ -268,7 +222,7 @@ public class CylicBufferTest {
 
 		System.out.println(
 				icb.getClass() + "  totalProducers=" + totalProducers + " opsPerSecStr=" + millionOpsPerSecStr);
-		//icb.barriersDump();
+		icb.barriersDump();
 
 		if (consumerRunnable.failed) {
 			fail();
