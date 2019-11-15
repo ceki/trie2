@@ -1,4 +1,4 @@
-package ceki.ce.signal;
+package ch.qos.ringBuffer.signal;
 
 public class BitUtil {
 

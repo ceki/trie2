@@ -1,4 +1,4 @@
-package ceki.ce;
+package ch.qos.ringBuffer;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -6,8 +6,9 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ceki.ce.signal.BusyWaitSignalBarrier;
-import ceki.ce.signal.SignalBarier;
+import ch.qos.ringBuffer.signal.BusyWaitSignalBarrier;
+import ch.qos.ringBuffer.signal.SignalBarrier;
+import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
 public class SPSCCylicBuffer<E> implements ICylicBuffer<E> {
 
@@ -21,14 +22,8 @@ public class SPSCCylicBuffer<E> implements ICylicBuffer<E> {
 	static final int MAX_YEILD_COUNT = 1;
 	static final int PARK_DURATION = 1;
 
-//	SignalBarier consumerSignalBarrier = new MixedSignalBarrierWithBackOff(MAX_YEILD_COUNT, PARK_DURATION);
-//	SignalBarier producerSignalBarrier = new MixedSignalBarrierWithBackOff(MAX_YEILD_COUNT, PARK_DURATION);
-
-//	SignalBarier consumerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
-//	SignalBarier producerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
-
-	SignalBarier consumerSignalBarrier = new BusyWaitSignalBarrier();
-	SignalBarier producerSignalBarrier = new BusyWaitSignalBarrier();
+	SignalBarrier consumerSignalBarrier = SignalBarrierFactory.makeSignalBarrier();
+	SignalBarrier producerSignalBarrier =  SignalBarrierFactory.makeSignalBarrier();
 
 	static final long INITIAL_INDEX = -1;
 	AtomicLong write = new AtomicLong(INITIAL_INDEX);

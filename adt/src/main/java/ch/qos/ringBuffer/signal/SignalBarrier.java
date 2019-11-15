@@ -1,6 +1,6 @@
-package ceki.ce.signal;
+package ch.qos.ringBuffer.signal;
 
-public interface SignalBarier {
+public interface SignalBarrier {
 
 	void signal();
 

@@ -1,11 +1,6 @@
-package ceki.ce;
+package ch.qos.ringBuffer;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-
-import ceki.ce.ICylicBuffer;
 
 public class ABQ<E> implements ICylicBuffer<E> {
 

@@ -1,4 +1,4 @@
-package ceki.ce;
+package ch.qos.ringBuffer;
 
 public class Container<E> {
 

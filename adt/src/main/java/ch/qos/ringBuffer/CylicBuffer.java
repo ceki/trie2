@@ -1,4 +1,4 @@
-package ceki.ce;
+package ch.qos.ringBuffer;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -6,10 +6,8 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ceki.ce.signal.MixedSignalBarrier;
-import ceki.ce.signal.MixedSignalBarrierWithBackOff;
-import ceki.ce.signal.ParkNanosSignalBarrier;
-import ceki.ce.signal.SignalBarier;
+import ch.qos.ringBuffer.signal.SignalBarrier;
+import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
 public class CylicBuffer<E> implements ICylicBuffer<E> {
 
@@ -21,32 +19,15 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	final AtomicReferenceArray<E> array;
 	final Class<E> clazz;
 
-	static final int MAX_YEILD_COUNT = 1;
-	static final int PARK_DURATION = 10000;
-
-	//SignalBarier consumerSignalBarrier = new MixedSignalBarrierWithBackOff(MAX_YEILD_COUNT, PARK_DURATION);
-	//SignalBarier producerSignalBarrier = new MixedSignalBarrierWithBackOff(MAX_YEILD_COUNT, PARK_DURATION);
-
-	SignalBarier consumerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
-	SignalBarier producerSignalBarrier = new ParkNanosSignalBarrier(PARK_DURATION);
-
-//	SignalBarier consumerSignalBarrier = new BusyWaitSignalBarrier(MAX_YEILD_COUNT);
-//	SignalBarier producerSignalBarrier = new BusyWaitSignalBarrier(MAX_YEILD_COUNT);
+	SignalBarrier consumerSignalBarrier = SignalBarrierFactory.makeSignalBarrier();
+	SignalBarrier producerSignalBarrier =  SignalBarrierFactory.makeSignalBarrier();
 
 	static final long INITIAL_INDEX = -1;
 	AtomicLong writeReserve = new AtomicLong(INITIAL_INDEX);
 	AtomicLong writeCommit = new AtomicLong(INITIAL_INDEX);
 
-//	ThreadLocal<Integer> readCache = new ThreadLocal<Integer>() {
-//		protected Integer initialValue() {
-//			return INITIAL_INDEX;
-//		}
-//	};
-
-	// int readCache = INITIAL_INDEX;
 	AtomicLong read = new AtomicLong(INITIAL_INDEX);
 
-	@SuppressWarnings("unchecked")
 	CylicBuffer(int capacity, Class<E> clazz) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;

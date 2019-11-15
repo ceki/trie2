@@ -1,6 +1,6 @@
-package ceki.ce.signal;
+package ch.qos.ringBuffer.signal;
 
-public class BusyWaitSignalBarrier implements SignalBarier {
+public class BusyWaitSignalBarrier implements SignalBarrier {
 
 	long signalCount;
 

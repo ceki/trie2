@@ -1,9 +1,9 @@
-package ceki.ce.signal;
+package ch.qos.ringBuffer.signal;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
-public class MixedSignalBarrierWithBackOff implements SignalBarier {
+public class MixedSignalBarrierWithBackOff implements SignalBarrier {
 
 	final int maxYieldCount;
 	final int duration;

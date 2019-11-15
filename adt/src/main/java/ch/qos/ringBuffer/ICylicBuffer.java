@@ -1,6 +1,6 @@
-package ceki.ce;
+package ch.qos.ringBuffer;
 
-import ceki.ce.signal.SignalBarier;
+import ch.qos.ringBuffer.signal.SignalBarrier;
 
 public interface ICylicBuffer<E> {
 
@@ -11,7 +11,7 @@ public interface ICylicBuffer<E> {
 	default void barriersDump() {
 	}
 	
-	default void await(SignalBarier sb, int count) {
+	default void await(SignalBarrier sb, int count) {
 		try {
 			sb.await(count);
 		} catch (InterruptedException e) {

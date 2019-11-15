@@ -1,4 +1,4 @@
-package ceki.ce.signal;
+package ch.qos.ringBuffer.signal;
 /* I release this code into the public domain.
  * http://unlicense.org/UNLICENSE
  */

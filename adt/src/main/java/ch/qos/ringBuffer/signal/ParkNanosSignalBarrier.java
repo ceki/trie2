@@ -1,9 +1,9 @@
-package ceki.ce.signal;
+package ch.qos.ringBuffer.signal;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
-public class ParkNanosSignalBarrier implements SignalBarier {
+public class ParkNanosSignalBarrier implements SignalBarrier {
 
 	long parkCount;
 	long signalCount;

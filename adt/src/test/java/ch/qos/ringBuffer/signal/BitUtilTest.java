@@ -1,9 +1,11 @@
-package ceki.ce.signal;
+package ch.qos.ringBuffer.signal;
 
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Ignore;
 import org.junit.Test;
+
+import ch.qos.ringBuffer.signal.BitUtil;
 
 public class BitUtilTest {
 
