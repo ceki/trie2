@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ceki.ce.marked.MPSC_CylicBuffer;
 import ch.qos.ringBuffer.ABQ;
 import ch.qos.ringBuffer.DoubleWriterLockedRingBuffer;
 import ch.qos.ringBuffer.RingBuffer;
@@ -27,7 +26,7 @@ public class CylicBufferTest {
 	DoubleWriterLockedRingBuffer<Integer> ce = new DoubleWriterLockedRingBuffer<>(capacity, Integer.class);
 	SingleProducerSingleConsumerRingBuffer<Integer> spscce = new SingleProducerSingleConsumerRingBuffer<>(capacity);
 	final ABQ<Integer> abq = new ABQ<>(capacity, Integer.class);
-	MPSC_CylicBuffer<Integer> mpsc = new MPSC_CylicBuffer<>(capacity);
+	NullCheckingReaderRingBuffer<Integer> mpsc = new NullCheckingReaderRingBuffer<>(capacity);
 
 	@Test
 	public void smoke() {

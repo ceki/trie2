@@ -1,4 +1,4 @@
-package ceki.ce.marked;
+package ch.qos.ringBuffer;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -6,11 +6,10 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.ringBuffer.RingBuffer;
 import ch.qos.ringBuffer.signal.SignalBarrier;
 import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
-public class MPSC_CylicBuffer<E> implements RingBuffer<E> {
+public class NullCheckingReaderRingBuffer<E> implements RingBuffer<E> {
 
 	static public class Value<E> {
 
@@ -26,13 +25,12 @@ public class MPSC_CylicBuffer<E> implements RingBuffer<E> {
 
 	}
 
-	static Logger logger = LoggerFactory.getLogger(MPSC_CylicBuffer.class);
+	static Logger logger = LoggerFactory.getLogger(NullCheckingReaderRingBuffer.class);
 
 	public final int capacity;
 	public final int mask;
 
 	final AtomicReferenceArray<Value<E>> array;
-	// final Empty<E>[] emptyNodes;
 	final Value<E>[] valueNodes;
 
 	static final int MAX_YEILD_COUNT = 1;
@@ -45,21 +43,15 @@ public class MPSC_CylicBuffer<E> implements RingBuffer<E> {
 	AtomicLong write = new AtomicLong(INITIAL_INDEX);
 	AtomicLong read = new AtomicLong(INITIAL_INDEX);
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public MPSC_CylicBuffer(int capacity) {
+	@SuppressWarnings("unchecked")
+	public NullCheckingReaderRingBuffer(int capacity) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
 		this.array = new AtomicReferenceArray<Value<E>>(capacity);
 
-//		this.emptyNodes = new Empty[capacity];
-//		for (int i = 0; i < capacity; i++) {
-//			//emptyNodes[i] = new Empty<E>();
-//			this.array.set(i, emptyNodes[i]);
-//		}
-
 		this.valueNodes = new Value[capacity];
 		for (int i = 0; i < capacity; i++) {
-			valueNodes[i] = new Value();
+			valueNodes[i] = new Value<E>();
 			this.array.set(i, null);
 		}
 
@@ -150,12 +142,8 @@ public class MPSC_CylicBuffer<E> implements RingBuffer<E> {
 
 		// logger.debug("consumer reading at next={}", next);
 
-		int count = 0;
 		while (true) {
-			count++;
-
 			Value<E> n = array.compareAndExchange(cyclicNext, valueNode, null);
-			// boolean success = array.compareAndSet(cyclicNext, valueNode, emptyNode);
 			if (n == valueNode) {
 				E e = valueNode.e;
 				// logger.debug("consumer read e={} at next={} count={}", e, next, count);

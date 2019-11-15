@@ -9,6 +9,17 @@ import org.slf4j.LoggerFactory;
 import ch.qos.ringBuffer.signal.SignalBarrier;
 import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
+/**
+ * A lock free implementation {@link RingBuffer} interface suitable 
+ * for single-producer single-consumer environments. 
+ *
+ *<p> This implementation establishes an upper bound on performance.
+ * On the author's host, this implementation has a throughput of 
+ * about 55 millions events per second.
+ *
+ * @param <E>
+ */
+
 public class DoubleWriterLockedRingBuffer<E> implements RingBuffer<E> {
 
 	static Logger logger = LoggerFactory.getLogger(DoubleWriterLockedRingBuffer.class);
