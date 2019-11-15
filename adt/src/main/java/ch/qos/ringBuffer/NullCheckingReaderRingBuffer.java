@@ -1,6 +1,7 @@
 package ch.qos.ringBuffer;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import org.slf4j.Logger;
@@ -11,27 +12,21 @@ import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
 public class NullCheckingReaderRingBuffer<E> implements RingBuffer<E> {
 
-	static public class Value<E> {
-
-		volatile E e;
-
-		public Value(E e) {
-			this.e = e;
-		}
-
-		public Value() {
-			this.e = null;
-		}
-
-	}
+//	static public class Value<E> {
+//		AtomicReference<E> reference = new AtomicReference<E>(null);
+//	}
 
 	static Logger logger = LoggerFactory.getLogger(NullCheckingReaderRingBuffer.class);
 
 	public final int capacity;
 	public final int mask;
 
-	final AtomicReferenceArray<Value<E>> array;
-	final Value<E>[] valueNodes;
+	final AtomicReferenceArray<AtomicReference<E>> array;
+	
+	// Given that the AtomicReferenceArray.compareAndExchange operation is based 
+	// on == (identity equality), we need to know the indentities of the values
+	// in advance
+	final AtomicReference<E>[] referenceNodes;
 
 	static final int MAX_YEILD_COUNT = 1;
 	static final int PARK_DURATION = 1;
@@ -47,11 +42,11 @@ public class NullCheckingReaderRingBuffer<E> implements RingBuffer<E> {
 	public NullCheckingReaderRingBuffer(int capacity) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
-		this.array = new AtomicReferenceArray<Value<E>>(capacity);
+		this.array = new AtomicReferenceArray<AtomicReference<E>>(capacity);
 
-		this.valueNodes = new Value[capacity];
+		this.referenceNodes = new AtomicReference[capacity];
 		for (int i = 0; i < capacity; i++) {
-			valueNodes[i] = new Value<E>();
+			referenceNodes[i] = new AtomicReference<E>();
 			this.array.set(i, null);
 		}
 
@@ -114,11 +109,10 @@ public class NullCheckingReaderRingBuffer<E> implements RingBuffer<E> {
 
 		// logger.debug("inserted e={} at next={}", e, writeSuccessor);
 
-		// Empty<E> emptyNode = emptyNodes[cyclicWriteSuccessor];
-		final Value<E> valueNode = valueNodes[cyclicWriteSuccessor];
-		valueNode.e = e;
+		final AtomicReference<E> referenceNode = referenceNodes[cyclicWriteSuccessor];
+		referenceNode.setRelease(e); 
 
-		array.set(cyclicWriteSuccessor, valueNode);
+		array.set(cyclicWriteSuccessor, referenceNode);
 		return true;
 
 	}
@@ -138,20 +132,19 @@ public class NullCheckingReaderRingBuffer<E> implements RingBuffer<E> {
 		final long next = localRead + 1;
 		final int cyclicNext = getCyclicIndex(next);
 
-		Value<E> valueNode = valueNodes[cyclicNext];
+		AtomicReference<E> referenceNode = referenceNodes[cyclicNext];
 
 		// logger.debug("consumer reading at next={}", next);
 
+		// Wait for the producer to finish writing
 		while (true) {
-			Value<E> n = array.compareAndExchange(cyclicNext, valueNode, null);
-			if (n == valueNode) {
-				E e = valueNode.e;
+			AtomicReference<E> n = array.compareAndExchange(cyclicNext, referenceNode, null);
+			if (n == referenceNode) {
+				E e = referenceNode.getAcquire();
 				// logger.debug("consumer read e={} at next={} count={}", e, next, count);
 				read.setRelease(next);
 				return e;
-			} else {
-				// await(consumerSignalBarrier, 0);
-			}
+			} 
 		}
 	}
 
@@ -183,9 +176,6 @@ public class NullCheckingReaderRingBuffer<E> implements RingBuffer<E> {
 		return (int) writeIndex & mask;
 	}
 
-//	private boolean isEmptyCurried(long localReadCache) {
-//		return isEmpty(writeCommit.getAcquire(), localReadCache);
-//	}
 
 	public boolean isEmpty() {
 		return isEmpty(write.getAcquire(), read.getAcquire());

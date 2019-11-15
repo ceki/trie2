@@ -23,15 +23,15 @@ public class CylicBufferTest {
 
 	final int capacity = 1024 * 2;
 
-	DoubleWriterLockedRingBuffer<Integer> ce = new DoubleWriterLockedRingBuffer<>(capacity, Integer.class);
-	SingleProducerSingleConsumerRingBuffer<Integer> spscce = new SingleProducerSingleConsumerRingBuffer<>(capacity);
+	DoubleWriterLockedRingBuffer<Integer> doubleWriterLockedRB = new DoubleWriterLockedRingBuffer<>(capacity, Integer.class);
+	SingleProducerSingleConsumerRingBuffer<Integer> spscRB = new SingleProducerSingleConsumerRingBuffer<>(capacity);
 	final ABQ<Integer> abq = new ABQ<>(capacity, Integer.class);
-	NullCheckingReaderRingBuffer<Integer> mpsc = new NullCheckingReaderRingBuffer<>(capacity);
+	NullCheckingReaderRingBuffer<Integer> nullCheckingRB = new NullCheckingReaderRingBuffer<>(capacity);
 
 	@Test
 	public void smoke() {
-		ce.put(1);
-		Integer val = ce.take();
+		doubleWriterLockedRB.put(1);
+		Integer val = doubleWriterLockedRB.take();
 		Integer expected = 1;
 		assertEquals(expected, val);
 	}
@@ -47,8 +47,8 @@ public class CylicBufferTest {
 
 	@Test
 	public void smokeMPSC() {
-		mpsc.put(1);
-		Integer val = mpsc.take();
+		nullCheckingRB.put(1);
+		Integer val = nullCheckingRB.take();
 		Integer expected = 1;
 		assertEquals(expected, val);
 	}
@@ -71,7 +71,7 @@ public class CylicBufferTest {
 	// @Ignore
 	@Test
 	public void smokeInOut() {
-		smokeInOut(ce);
+		smokeInOut(doubleWriterLockedRB);
 	}
 
 	@Test
@@ -81,60 +81,60 @@ public class CylicBufferTest {
 
 	@Test
 	public void mpmc_smokeInOut() {
-		smokeInOut(mpsc);
+		smokeInOut(nullCheckingRB);
 	}
 
 	@Test
 	public void mpsc_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(mpsc, 1);
+		n_ProducersSingleConsumer(nullCheckingRB, 1);
 	}
 
 	@Ignore
 	@Test
 	public void noLock_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 1);
+		n_ProducersSingleConsumer(doubleWriterLockedRB, 1);
 	}
 
 	@Ignore
 	@Test
 	public void spscce_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(spscce, 1);
+		n_ProducersSingleConsumer(spscRB, 1);
 	}
 
 	@Ignore
 	@Test
 	public void _noLock_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 1);
+		n_ProducersSingleConsumer(doubleWriterLockedRB, 1);
 	}
 
 	@Ignore
 	@Test
 	public void noLock_twoProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 2);
+		n_ProducersSingleConsumer(doubleWriterLockedRB, 2);
 	}
 
 	@Ignore
 	@Test
 	public void noLock_4ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 4);
+		n_ProducersSingleConsumer(doubleWriterLockedRB, 4);
 	}
 
 	@Ignore
 	@Test
 	public void noLock_8ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 8);
+		n_ProducersSingleConsumer(doubleWriterLockedRB, 8);
 	}
 
 	@Ignore
 	@Test
 	public void nolock_32_ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 32);
+		n_ProducersSingleConsumer(doubleWriterLockedRB, 32);
 	}
 
 	@Ignore
 	@Test
 	public void noLock_64ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 64);
+		n_ProducersSingleConsumer(doubleWriterLockedRB, 64);
 	}
 
 	@Ignore
@@ -153,8 +153,10 @@ public class CylicBufferTest {
 	@Test
 	public void all() {
 
-		RingBuffer<Integer> icbArray[] = new RingBuffer[] { ce, spscce, mpsc, abq };
+		//RingBuffer<Integer> icbArray[] = new RingBuffer[] { ce, spscce, mpsc, abq };
+		RingBuffer<Integer> icbArray[] = new RingBuffer[] { doubleWriterLockedRB, nullCheckingRB };
 
+		
 		for (RingBuffer<Integer> icq : icbArray) {
 			for (int numProducers = 1; numProducers < 128; numProducers *= 2) {
 				try {
