@@ -12,9 +12,9 @@ import org.slf4j.LoggerFactory;
 
 import ceki.ce.marked.MPSC_CylicBuffer;
 import ch.qos.ringBuffer.ABQ;
-import ch.qos.ringBuffer.CylicBuffer;
-import ch.qos.ringBuffer.ICylicBuffer;
-import ch.qos.ringBuffer.SPSCCylicBuffer;
+import ch.qos.ringBuffer.DoubleWriterLockedRingBuffer;
+import ch.qos.ringBuffer.RingBuffer;
+import ch.qos.ringBuffer.SingleProducerSingleConsumerRingBuffer;
 
 public class CylicBufferTest {
 
@@ -24,8 +24,8 @@ public class CylicBufferTest {
 
 	final int capacity = 1024 * 2;
 
-	CylicBuffer<Integer> ce = new CylicBuffer<>(capacity, Integer.class);
-	SPSCCylicBuffer<Integer> spscce = new SPSCCylicBuffer<>(capacity);
+	DoubleWriterLockedRingBuffer<Integer> ce = new DoubleWriterLockedRingBuffer<>(capacity, Integer.class);
+	SingleProducerSingleConsumerRingBuffer<Integer> spscce = new SingleProducerSingleConsumerRingBuffer<>(capacity);
 	final ABQ<Integer> abq = new ABQ<>(capacity, Integer.class);
 	MPSC_CylicBuffer<Integer> mpsc = new MPSC_CylicBuffer<>(capacity);
 
@@ -54,7 +54,7 @@ public class CylicBufferTest {
 		assertEquals(expected, val);
 	}
 
-	public void smokeInOut(ICylicBuffer<Integer> icb) {
+	public void smokeInOut(RingBuffer<Integer> icb) {
 		for (int i = 0; i <= capacity + 1; i++) {
 			icb.put(i);
 			Integer val = icb.take();
@@ -154,9 +154,9 @@ public class CylicBufferTest {
 	@Test
 	public void all() {
 
-		ICylicBuffer<Integer> icbArray[] = new ICylicBuffer[] { ce, spscce, mpsc, abq };
+		RingBuffer<Integer> icbArray[] = new RingBuffer[] { ce, spscce, mpsc, abq };
 
-		for (ICylicBuffer<Integer> icq : icbArray) {
+		for (RingBuffer<Integer> icq : icbArray) {
 			for (int numProducers = 1; numProducers < 128; numProducers *= 2) {
 				try {
 					n_ProducersSingleConsumer(icq, numProducers);
@@ -170,11 +170,11 @@ public class CylicBufferTest {
 
 	class ProducerRunnable implements Runnable {
 
-		ICylicBuffer<Integer> icb;
+		RingBuffer<Integer> icb;
 		final int id;
 		final int totalProducers;
 
-		ProducerRunnable(ICylicBuffer<Integer> icb, int id, int totalProducers) {
+		ProducerRunnable(RingBuffer<Integer> icb, int id, int totalProducers) {
 			this.icb = icb;
 			this.id = id;
 			this.totalProducers = totalProducers;
@@ -190,7 +190,7 @@ public class CylicBufferTest {
 	};
 
 	class ConsumerRunnable implements Runnable {
-		ICylicBuffer<Integer> icb;
+		RingBuffer<Integer> icb;
 
 		final int totalProducers;
 		final int totalProducersMask;
@@ -198,7 +198,7 @@ public class CylicBufferTest {
 		int expected[];
 		public boolean failed = false;
 
-		ConsumerRunnable(ICylicBuffer<Integer> icb, int totalProducers) {
+		ConsumerRunnable(RingBuffer<Integer> icb, int totalProducers) {
 			this.icb = icb;
 			this.totalProducers = totalProducers;
 			this.totalProducersMask = totalProducers - 1;
@@ -232,7 +232,7 @@ public class CylicBufferTest {
 
 	};
 
-	public void n_ProducersSingleConsumer(ICylicBuffer<Integer> icb, int totalProducers) throws InterruptedException {
+	public void n_ProducersSingleConsumer(RingBuffer<Integer> icb, int totalProducers) throws InterruptedException {
 
 		Thread[] producerThreads = new Thread[totalProducers];
 

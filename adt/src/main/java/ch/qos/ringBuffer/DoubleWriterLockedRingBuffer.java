@@ -9,9 +9,9 @@ import org.slf4j.LoggerFactory;
 import ch.qos.ringBuffer.signal.SignalBarrier;
 import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
-public class CylicBuffer<E> implements ICylicBuffer<E> {
+public class DoubleWriterLockedRingBuffer<E> implements RingBuffer<E> {
 
-	static Logger logger = LoggerFactory.getLogger(CylicBuffer.class);
+	static Logger logger = LoggerFactory.getLogger(DoubleWriterLockedRingBuffer.class);
 
 	public final int capacity;
 	public final int mask;
@@ -28,7 +28,7 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 
 	AtomicLong read = new AtomicLong(INITIAL_INDEX);
 
-	CylicBuffer(int capacity, Class<E> clazz) {
+	DoubleWriterLockedRingBuffer(int capacity, Class<E> clazz) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
 		this.clazz = clazz;

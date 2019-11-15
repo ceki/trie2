@@ -6,12 +6,25 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.ringBuffer.ICylicBuffer;
-import ch.qos.ringBuffer.signal.BusyWaitSignalBarrier;
+import ch.qos.ringBuffer.RingBuffer;
 import ch.qos.ringBuffer.signal.SignalBarrier;
 import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
-public class MPSC_CylicBuffer<E> implements ICylicBuffer<E> {
+public class MPSC_CylicBuffer<E> implements RingBuffer<E> {
+
+	static public class Value<E> {
+
+		volatile E e;
+
+		public Value(E e) {
+			this.e = e;
+		}
+
+		public Value() {
+			this.e = null;
+		}
+
+	}
 
 	static Logger logger = LoggerFactory.getLogger(MPSC_CylicBuffer.class);
 
@@ -19,15 +32,15 @@ public class MPSC_CylicBuffer<E> implements ICylicBuffer<E> {
 	public final int mask;
 
 	final AtomicReferenceArray<Value<E>> array;
-	//final Empty<E>[] emptyNodes;
+	// final Empty<E>[] emptyNodes;
 	final Value<E>[] valueNodes;
 
 	static final int MAX_YEILD_COUNT = 1;
 	static final int PARK_DURATION = 1;
 
 	SignalBarrier consumerSignalBarrier = SignalBarrierFactory.makeSignalBarrier();
-	SignalBarrier producerSignalBarrier =  SignalBarrierFactory.makeSignalBarrier();
-	
+	SignalBarrier producerSignalBarrier = SignalBarrierFactory.makeSignalBarrier();
+
 	static final long INITIAL_INDEX = -1;
 	AtomicLong write = new AtomicLong(INITIAL_INDEX);
 	AtomicLong read = new AtomicLong(INITIAL_INDEX);
@@ -107,7 +120,7 @@ public class MPSC_CylicBuffer<E> implements ICylicBuffer<E> {
 		final long writeSuccessor = localWrite + 1;
 		final int cyclicWriteSuccessor = getCyclicIndex(writeSuccessor);
 
-		//logger.debug("inserted e={} at next={}", e, writeSuccessor);
+		// logger.debug("inserted e={} at next={}", e, writeSuccessor);
 
 		// Empty<E> emptyNode = emptyNodes[cyclicWriteSuccessor];
 		final Value<E> valueNode = valueNodes[cyclicWriteSuccessor];
@@ -124,7 +137,7 @@ public class MPSC_CylicBuffer<E> implements ICylicBuffer<E> {
 
 		long localWrite = write.getAcquire();
 
-		//logger.debug("consumer localRead={} localWrite={}", localRead, localWrite);
+		// logger.debug("consumer localRead={} localWrite={}", localRead, localWrite);
 
 		if (isEmpty(localWrite, localRead)) {
 			return null;
@@ -135,21 +148,21 @@ public class MPSC_CylicBuffer<E> implements ICylicBuffer<E> {
 
 		Value<E> valueNode = valueNodes[cyclicNext];
 
-		//logger.debug("consumer reading at next={}", next);
+		// logger.debug("consumer reading at next={}", next);
 
 		int count = 0;
 		while (true) {
 			count++;
 
-			Node<E> n = array.compareAndExchange(cyclicNext, valueNode, null);
+			Value<E> n = array.compareAndExchange(cyclicNext, valueNode, null);
 			// boolean success = array.compareAndSet(cyclicNext, valueNode, emptyNode);
 			if (n == valueNode) {
 				E e = valueNode.e;
-				//logger.debug("consumer read e={} at next={} count={}", e, next, count);
+				// logger.debug("consumer read e={} at next={} count={}", e, next, count);
 				read.setRelease(next);
 				return e;
 			} else {
-				//await(consumerSignalBarrier, 0);
+				// await(consumerSignalBarrier, 0);
 			}
 		}
 	}

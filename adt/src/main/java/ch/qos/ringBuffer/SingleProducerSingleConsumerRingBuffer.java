@@ -6,13 +6,24 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.ringBuffer.signal.BusyWaitSignalBarrier;
 import ch.qos.ringBuffer.signal.SignalBarrier;
 import ch.qos.ringBuffer.signal.SignalBarrierFactory;
 
-public class SPSCCylicBuffer<E> implements ICylicBuffer<E> {
+/**
+ * A lock free implementation {@link RingBuffer} interface suitable 
+ * for single-producer single-consumer environments. This implementation
+ * uses only memory get and set operations, with no mutex locks and 
+ * not even  CAS operations.
+ *
+ *<p> This implementation establishes an upper bound on performance.
+ * On the author's host, this implementation has a throughput of 
+ * about 55 millions events per second.
+ *
+ * @param <E>
+ */
+public class SingleProducerSingleConsumerRingBuffer<E> implements RingBuffer<E> {
 
-	static Logger logger = LoggerFactory.getLogger(SPSCCylicBuffer.class);
+	static Logger logger = LoggerFactory.getLogger(SingleProducerSingleConsumerRingBuffer.class);
 
 	public final int capacity;
 	public final int mask;
@@ -31,7 +42,7 @@ public class SPSCCylicBuffer<E> implements ICylicBuffer<E> {
 	AtomicLong read = new AtomicLong(INITIAL_INDEX);
 	long readCache = INITIAL_INDEX;
 
-	SPSCCylicBuffer(int capacity) {
+	SingleProducerSingleConsumerRingBuffer(int capacity) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
 		this.array = new AtomicReferenceArray<E>(capacity);

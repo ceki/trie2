@@ -2,7 +2,17 @@ package ch.qos.ringBuffer;
 
 import java.util.concurrent.ArrayBlockingQueue;
 
-public class ABQ<E> implements ICylicBuffer<E> {
+
+/**
+ * 
+ * An implementation of {@link RingBuffer} interface based
+ * on {@link ArrayBlockingQueue} to serve as a point of comparison.
+ * 
+ * @author ceki
+ *
+ * @param <E>
+ */
+public class ABQ<E> implements RingBuffer<E> {
 
 	int capacity;
 
@@ -17,28 +27,15 @@ public class ABQ<E> implements ICylicBuffer<E> {
 	}
 
 	@Override
-
 	public E take() {
-		//List<E> container = new ArrayList<E>();
-
-		// abq.drainTo(container);
-		//E[] values = (E[]) Array.newInstance(clazz, 1);
-
 		try {
 			E e = abq.take();
 			return e;
 		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return null;
 		}
 
-		
-//		E[] values = (E[]) Array.newInstance(clazz, container.size());
-//		for(int i = 0; i < container.size(); i++) {
-//			values[i] = container.get(i);
-//		}
-		//return values;
 	}
 
 	@Override
