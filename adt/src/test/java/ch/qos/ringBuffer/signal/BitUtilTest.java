@@ -53,7 +53,7 @@ public class BitUtilTest {
 		assertEquals(32, r);
 	}
 	
-	@Ignore
+
 	@Test
 	public void more() {
 		{

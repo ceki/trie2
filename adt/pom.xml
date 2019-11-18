@@ -37,6 +37,19 @@
 			<scope>test</scope>
 		</dependency>
 
+
+		<dependency>
+			<groupId>org.jctools</groupId>
+			<artifactId>jctools-core</artifactId>
+		</dependency>
+
+
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>javax.mail</groupId>
 			<artifactId>javax.mail-api</artifactId>
