@@ -52,6 +52,7 @@ public class CylicBufferTest {
 	SingleProducerSingleConsumerRingBuffer<Integer> spscRB = new SingleProducerSingleConsumerRingBuffer<>(capacity);
 	final ABQ<Integer> abq = new ABQ<>(capacity, Integer.class);
 	NullCheckingReaderRingBuffer<Integer> nullCheckingRB = new NullCheckingReaderRingBuffer<>(capacity);
+	NullCheckingReaderRingBuffer2<Integer> nullCheckingRB2 = new NullCheckingReaderRingBuffer2<>(capacity);
 	JCToolsRB<Integer> jctoolsRB = new JCToolsRB<>(capacity);
 
 	@Test
@@ -134,11 +135,13 @@ public class CylicBufferTest {
 	public void all() {
 
 		//RingBuffer<Integer> icbArray[] = new RingBuffer[] { ce, spscce, mpsc, abq };
-		RingBuffer<Integer> icbArray[] = new RingBuffer[] { nullCheckingRB, jctoolsRB };
+		RingBuffer<Integer> icbArray[] = new RingBuffer[] { nullCheckingRB2, jctoolsRB };
 
 		
 		for (RingBuffer<Integer> icq : icbArray) {
+			
 			for (int numProducers = 1; numProducers <= 128; numProducers *= 2) {
+				System.gc();
 				try {
 					n_ProducersSingleConsumer(icq, numProducers);
 				} catch (InterruptedException e) {
