@@ -6,9 +6,7 @@
 
 <!-- 	<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
 			<level>DEBUG</level>
-		</filter>
  -->
-
 		<encoder>
 			<pattern>%d %5.5le [%-11.11(%thread)] %-32.32logger{32} %kvp - %msg%n
 			</pattern>
@@ -16,9 +14,10 @@
 	</appender>
 
 	<root level="WARN">
+	<root level="DEBUG">
 		<appender-ref ref="STDOUT" />
-		<!-- <appender-ref ref="FILE" />
-		<appender-ref ref="EMAIL" /> -->
+		<!-- <appender-ref ref="FILE" /> -->
+		<appender-ref ref="EMAIL" /> 
 
 	</root>
 </configuration>
