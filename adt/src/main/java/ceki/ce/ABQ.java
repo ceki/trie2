@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import ceki.ce.ICylicBuffer;
-
 public class ABQ<E> implements ICylicBuffer<E> {
 
 	int capacity;
@@ -14,22 +12,30 @@ public class ABQ<E> implements ICylicBuffer<E> {
 	final ArrayBlockingQueue<E> abq;
 	Class<E> clazz;
 	
+	
 	ABQ(int capacity, Class<E> clazz) {
 		this.clazz = clazz;
 		this.capacity = capacity;
 	
+		
 		abq = new ArrayBlockingQueue<>(capacity);
 	}
-	@Override
 	
+	@SuppressWarnings("unchecked")
+	@Override
 	public E[] take() {
-		List<E> container = new ArrayList<E>();
-		abq.drainTo(container);
-		E[] values = (E[]) Array.newInstance(clazz, container.size());
-		for(int i = 0; i < container.size(); i++) {
-			values[i] = container.get(i);
+		
+		try {
+			E e0 = abq.take();
+			List<E> container = new ArrayList<E>();
+			container.add(e0);
+			abq.drainTo(container);
+			E[] values = (E[]) Array.newInstance(clazz, container.size());
+			return container.toArray(values);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return null;
 		}
-		return values;
 	}
 
 	@Override

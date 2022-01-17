@@ -74,60 +74,61 @@
 			<artifactId>log4j-core</artifactId>
 		</dependency>
 
+                <!--
 		<dependency>
 			<groupId>org.pure4j</groupId>
 			<artifactId>pure4j-core</artifactId>
 			<version>0.2.7-SNAPSHOT</version>
 		</dependency>
-
+                -->
+                
 	</dependencies>
 
 
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<compilerVersion>${javac.target}</compilerVersion>
-					<source>${javac.target}</source>
-					<target>${javac.target}</target>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.2</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<finalName>${uberjar.name}</finalName>
-							<transformers>
-								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>org.openjdk.jmh.Main</mainClass>
-								</transformer>
-							</transformers>
-							<filters>
-								<filter>
-									<!-- Shading signed JARs will fail without this. http://stackoverflow.com/questions/999489/invalid-signature-file-when-attempting-to-run-a-jar -->
-									<artifact>*:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.SF</exclude>
-										<exclude>META-INF/*.DSA</exclude>
-										<exclude>META-INF/*.RSA</exclude>
-									</excludes>
-								</filter>
-							</filters>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
+	  <plugins>
+	    <plugin>
+	      <groupId>org.apache.maven.plugins</groupId>
+	      <artifactId>maven-compiler-plugin</artifactId>
+	      <configuration>
+		<compilerVersion>${javac.target}</compilerVersion>
+		<source>${javac.target}</source>
+		<target>${javac.target}</target>
+	      </configuration>
+	    </plugin>
+	    <plugin>
+	      <groupId>org.apache.maven.plugins</groupId>
+	      <artifactId>maven-shade-plugin</artifactId>
+	      <version>2.2</version>
+	      <executions>
+		<execution>
+		  <phase>package</phase>
+		  <goals>
+		    <goal>shade</goal>
+		  </goals>
+		  <configuration>
+		    <finalName>${uberjar.name}</finalName>
+		    <transformers>
+		      <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+			<mainClass>org.openjdk.jmh.Main</mainClass>
+		      </transformer>
+		    </transformers>
+		    <filters>
+		      <filter>
+			<!-- Shading signed JARs will fail without this. http://stackoverflow.com/questions/999489/invalid-signature-file-when-attempting-to-run-a-jar -->
+			<artifact>*:*</artifact>
+			<excludes>
+			  <exclude>META-INF/*.SF</exclude>
+			  <exclude>META-INF/*.DSA</exclude>
+			  <exclude>META-INF/*.RSA</exclude>
+			</excludes>
+		      </filter>
+		    </filters>
+		  </configuration>
+		</execution>
+	      </executions>
+	    </plugin>
+	  </plugins>
 	</build>
 
 </project>

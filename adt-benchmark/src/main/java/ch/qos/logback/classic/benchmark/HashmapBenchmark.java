@@ -8,7 +8,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
-import org.pure4j.collections.PersistentTreeMap;
 
 import com.romix.scala.collection.concurrent.TrieMap;
 
@@ -18,7 +17,7 @@ public class HashmapBenchmark {
 
 	ConcurrentHashMap<String, Integer> concurrentHashMap;
     ConcurrentMap<String, Integer> trieMap;
-    PersistentTreeMap<String, Integer> persistentTreeMap;
+    //PersistentTreeMap<String, Integer> persistentTreeMap;
     
     String key = this.getClass().getName();
 	
@@ -31,8 +30,8 @@ public class HashmapBenchmark {
 		trieMap = new TrieMap<>();
 		trieMap.put(key, 1);
 		
-	   persistentTreeMap = PersistentTreeMap.emptyMap();
-	   persistentTreeMap = persistentTreeMap.assoc(key, 1);
+	   //persistentTreeMap = PersistentTreeMap.emptyMap();
+	   //persistentTreeMap = persistentTreeMap.assoc(key, 1);
 	}
 
 	@Benchmark
@@ -45,9 +44,9 @@ public class HashmapBenchmark {
 		trieMap.get(key);
 	}
 
-	@Benchmark
-	public void persistentTreeMapGet() {
-		persistentTreeMap.get(key);
-	}
+//	@Benchmark
+//	public void persistentTreeMapGet() {
+//		persistentTreeMap.get(key);
+//	}
 	
 }

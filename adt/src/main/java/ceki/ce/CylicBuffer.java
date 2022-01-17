@@ -8,8 +8,10 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ceki.ce.signal.DefaultSignalBarrier;
 import ceki.ce.signal.MixedSignalBarrier;
 import ceki.ce.signal.SignalBarier;
+import ceki.ce.signal.SingleThreadSignalBarrier;
 
 public class CylicBuffer<E> implements ICylicBuffer<E> {
  
@@ -22,13 +24,17 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	final AtomicReferenceArray<E> array;
 	final Class<E> clazz;
 
-	static final int MAX_YEILD_COUNT = 2048;
+	static final int MAX_YEILD_COUNT = 1024;
 
-	static final int PARK_DURATION = 1;
+	static final int PARK_DURATION_PRODUCER = 1;
+	static final int PARK_DURATION_CONSUMER = 1;
 	
+	SignalBarier emptySignalBarrier = new SingleThreadSignalBarrier("emptySignalBarrier", MAX_YEILD_COUNT);
+	//SignalBarier fullSignalBarrier = new DefaultSignalBarrier("fullSignalBarrier");
+	SignalBarier fullSignalBarrier = new MixedSignalBarrier("fullSignalBarrier", MAX_YEILD_COUNT);
 	
-	SignalBarier consumerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT);
-	SignalBarier producerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT);
+	//SignalBarier consumerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT);
+	// SignalBarier producerSignalBarrier = new MixedSignalBarrier(MAX_YEILD_COUNT);
 
 	public long sum = 0;
 	public long readCount = 0;
@@ -38,7 +44,6 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	AtomicInteger writeCommit = new AtomicInteger(INITIAL_INDEX);
 	AtomicInteger read = new AtomicInteger(INITIAL_INDEX);
 
-	@SuppressWarnings("unchecked")
 	CylicBuffer(int capacity, Class<E> clazz) {
 		this.capacity = capacity;
 		this.mask = capacity - 1;
@@ -53,11 +58,12 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 			boolean success = this.insert(e);
 			if (success) {
 				if (empty)
-					consumerSignalBarrier.signal();
+					emptySignalBarrier.signal();
 				break;
-			} else {
+			} else { // insertion failed due to full buffer
 				try {
-					producerSignalBarrier.parkNanos(PARK_DURATION);
+					// park this 
+					fullSignalBarrier.parkNanos(PARK_DURATION_PRODUCER);
 				} catch (InterruptedException ex) {
 					ex.printStackTrace();
 				}
@@ -74,21 +80,26 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 			Optional<E[]> result = this.consume();
 			if (result.isPresent()) {
 				if (isFull) {
-					producerSignalBarrier.signal();
+					fullSignalBarrier.signal();
 				}
 				E[] values = result.get();
 				totalConsumed += values.length;
 				return values;
 			} else {
 				try {
-					consumerSignalBarrier.parkNanos(PARK_DURATION);
+					emptySignalBarrier.parkNanos(PARK_DURATION_CONSUMER);
 				} catch (InterruptedException ex) {
 					ex.printStackTrace();
 				}
 			}
 		}
 	}
-	
+	/**
+	 * Insert an element into the buffer.
+	 * 
+	 * @param e
+	 * @return true if the element could be inserted, false if the buffer was full. 
+	 */
 	boolean insert(E e) {
 		int localWriteReserve;
 		int localWriteCommit;
@@ -202,8 +213,8 @@ public class CylicBuffer<E> implements ICylicBuffer<E> {
 	}
 	
 	public void barriersDump() {
-		System.out.println("consumerSignalBarrier " + consumerSignalBarrier.dump());
-		System.out.println("producerSignalBarrier " + producerSignalBarrier.dump());
+		System.out.println("consumerSignalBarrier " + emptySignalBarrier);
+		System.out.println("producerSignalBarrier " + fullSignalBarrier);
 
 	}
 }

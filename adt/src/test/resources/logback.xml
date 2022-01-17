@@ -1,69 +1,19 @@
 <configuration debug="false">
 
-	<shutdownHook
-		class="ch.qos.logback.core.hook.DelayingShutdownHook" />
+	<shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook" />
 
+	<appender name="STDOUT"	class="ch.qos.logback.core.ConsoleAppender">
 
-	<appender name="STDOUT"
-		class="ch.qos.logback.core.ConsoleAppender">
-
-		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+<!-- 	<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
 			<level>DEBUG</level>
 		</filter>
-
-
-		<encoder>
-			<pattern>
-				%d %5.5le [%thread] - %msg%n
-			</pattern>
-		</encoder>
-	</appender>
-
-	<appender name="EMAIL"
-		class="ch.qos.logback.classic.net.SMTPAppender">
-
-		<evaluator
-			class="ch.qos.logback.classic.boolex.OnErrorEvaluator" />
-
-		<cyclicBufferTracker
-			class="ch.qos.logback.core.spi.CyclicBufferTracker">
-			<bufferSize>1024</bufferSize>
-		</cyclicBufferTracker>
-
-
-		<smtpHost>smtp.gmail.com</smtpHost>
-
-		<smtpPort>587</smtpPort>
-		<STARTTLS>true</STARTTLS>
-
-		<username>${smtp.username}</username>
-		<password>${smtp.password}</password>
-
-		<to>ceki@qos.ch</to>
-		<from>ceki@qos.ch</from>
-		<subject>TESTING: %logger{20} - %m</subject>
-		<asynchronousSending>false</asynchronousSending>
-		<layout class="ch.qos.logback.classic.PatternLayout">
-			<pattern>%d %5.5le [%thread] - %msg%n</pattern>
-		</layout>
-	</appender>
-
-
-	<timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss" />
-
-<!-- 	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
-
-		<file>testFile-${bySecond}.log</file>
-		<append>true</append>
-		<immediateFlush>false</immediateFlush>
-
-		<encoder>
-			<pattern>
-				%d %5.5le [%thread] - %msg%n
-			</pattern>
-		</encoder>
-	</appender>
  -->
+
+		<encoder>
+			<pattern>%d %5.5le [%-11.11(%thread)] %-32.32logger{32} %kvp - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
 
 	<root level="WARN">
 		<appender-ref ref="STDOUT" />

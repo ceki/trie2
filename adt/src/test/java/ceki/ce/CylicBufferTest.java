@@ -15,7 +15,7 @@ public class CylicBufferTest {
 	static Logger logger = LoggerFactory.getLogger(CylicBufferTest.class);
 
 	static int MAX_YEILD_COUNT = 2048;
-	static int TOTAL_RUN_LENGTH = 20_000_000;
+	static int TOTAL_RUN_LENGTH = 640_000;
 
 	int capacity = 256;
 
@@ -76,46 +76,60 @@ public class CylicBufferTest {
 	}
 	
 	@Test
-	public void noLock_singleProducerSingleConsumer() throws InterruptedException {
+	public void noLock_1_ProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 1);
 	}
 
-	@Test
-	public void abq_singleProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(abq, 1);
-	}
 
 	@Test
-	public void noLock_twoProducerSingleConsumer() throws InterruptedException {
+	public void noLock_2_ProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 2);
 	}
 
 	@Test
-	public void abq_twoProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(abq, 2);
+	public void noLock_4_ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(ce, 4);
 	}
-
-	@Ignore
+	
 	@Test
-	public void _8ProducerSingleConsumer() throws InterruptedException {
+	public void noLock_8_ProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 8);
 	}
 
+
 	@Test
-	public void nolock_32_ProducerSingleConsumer() throws InterruptedException {
+	public void noLock_32_ProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(ce, 32);
 	}
+	
+	@Test
+	public void noLock_64_ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(ce, 64);
+	}
+	
+	@Test
+	public void abq_1_ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(abq, 1);
+	}
+	
+	@Test
+	public void abq_2_ProducerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(abq, 2);
+	}
 
+	@Test
+	public void abq_8_producerSingleConsumer() throws InterruptedException {
+		n_ProducersSingleConsumer(abq, 8);
+	}
+
+	
+	//@Ignore // too slow
 	@Test
 	public void abq_32ProducerSingleConsumer() throws InterruptedException {
 		n_ProducersSingleConsumer(abq, 32);
 	}
 	
-	@Ignore
-	@Test
-	public void _64ProducerSingleConsumer() throws InterruptedException {
-		n_ProducersSingleConsumer(ce, 64);
-	}
+	
 
 	static final Integer ONE = new Integer(1);
 
@@ -134,6 +148,8 @@ public class CylicBufferTest {
 		public void run() {
 			int runLen = TOTAL_RUN_LENGTH / totalProducers;
 			for (int i = 0; i < runLen; i++) {
+//				if((i & 0xFFF) == 0)
+//					 logger.atDebug().addKeyValue("i", i).log("produced");
 				icb.put(id + i * totalProducers);
 			}
 			logger.info("Exiting producerRunnable");
@@ -158,12 +174,16 @@ public class CylicBufferTest {
 		}
 
 		public void run() {
+			logger.atDebug().log("entered ConsumerRunnable.run");
 			int totalConsumed = 0;
 			while (totalConsumed < TOTAL_RUN_LENGTH) {
-
+//				if((totalConsumed & 0xFF00) == 0)
+//				  logger.atDebug().addKeyValue("totalConsumed", totalConsumed).log("");
 				Integer[] values = icb.take();
 				if (values != null) {
 					totalConsumed += values.length;
+//					if((totalConsumed & 0xFF00) == 0)
+//					  logger.atDebug().addKeyValue("totalConsumed", totalConsumed).log("");
 					for (Integer v : values) {
 						validate(v);
 					}
@@ -173,6 +193,7 @@ public class CylicBufferTest {
 		}
 
 		private void validate(int r) {
+			// validation disabled
 			int expectIndex = (r & totalProducersMask);
 			int exp = expected[expectIndex];
 
@@ -196,6 +217,8 @@ public class CylicBufferTest {
 		Thread consumer = new Thread(consumerRunnable);
 		consumer.setName("**consumer");
 
+		long start = System.currentTimeMillis();
+		
 		for (int p = 0; p < totalProducers; p++) {
 			producerThreads[p] = new Thread(new ProducerRunnable(icb, p, totalProducers));
 			producerThreads[p].setName("producer-" + p);
@@ -210,11 +233,19 @@ public class CylicBufferTest {
 
 		consumer.join();
 
-//		System.out.println("==========================================");
+
+		long end = System.currentTimeMillis();
+		long diff = end-start;
+		double ops_per_ms = TOTAL_RUN_LENGTH*1.0/diff;
+		
+		System.out.println("ops/ms "+ops_per_ms);
+		
+		
+		System.out.println("==========================================");
 //		System.out.println(
 //				"totalProducers=" + totalProducers + " sum " + ce.sum + " avg=" + (ce.sum * 1.0 / ce.readCount));
 
-		//ce.barriersDump();
+		ce.barriersDump();
 
 		// dumpExpected(consumerRunnable.expected);
 	}

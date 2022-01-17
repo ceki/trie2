@@ -1,68 +1,77 @@
 package ceki.ce.signal;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.LockSupport;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MixedSignalBarrier implements SignalBarier {
 
+	final static Integer ZERO = 0;
+	
+	Logger logger = LoggerFactory.getLogger(this.getClass());
+
+	final String name;
 	final int maxYieldCount;
 	int busyWait;
 	int parkedCount;
-	private int unparkCount = 0;
+	private int signalCount = 0;
 
-	ConcurrentLinkedQueue<Thread> threadsQueue = new ConcurrentLinkedQueue<>();
-
+	ConcurrentHashMap<Thread, Boolean> threadsMap = new ConcurrentHashMap<>();
 	
-	int cycle = 0;
+	ThreadLocal<Integer> cycleThreadLocal = new ThreadLocal<Integer>() {
+		protected Integer initialValue() {
+			return 0;
+		}
+	};
+	
+	//int cycle = 0;
 
-	public MixedSignalBarrier(int maxYieldCount) {
+	public MixedSignalBarrier(String name, int maxYieldCount) {
+		this.name = name;
 		this.maxYieldCount = maxYieldCount;
 	}
 
+	
 	@Override
 	public void parkNanos(long duration) throws InterruptedException {
-		busyWait++;
+		parkedCount++;
 
-		if (cycle++ > maxYieldCount) {
-			cycle = 0;
-			parkedCount++;
+		int cycle = cycleThreadLocal.get();
+		cycleThreadLocal.set(cycle+1);	
+		if (cycle >= maxYieldCount) {
+			cycleThreadLocal.set(ZERO);	
+			
 			Thread currentThread = Thread.currentThread();
-			threadsQueue.add(currentThread);
+			threadsMap.put(currentThread, Boolean.TRUE);
 			LockSupport.parkNanos(this, duration);
-
+			threadsMap.remove(currentThread);
 			if (currentThread.isInterrupted())
 				throw new InterruptedException();
 		} else {
+			busyWait++;
 			Thread.yield();
 		}
 	}
 
 	@Override
 	public void signal() {
-		
-		while (true) {
-			Thread t = threadsQueue.poll();
-			if (t == null)
-				break;
-			else {
-				unparkCount++;
-				LockSupport.unpark(t);					
-			}
+		signalCount++;
+		if((signalCount & 0x0FFF) == 0) {
+			  logger.atDebug().addKeyValue("signalCount", signalCount).addKeyValue("threadsMapSize", threadsMap.size()).log("signal() called");
+		}
+		//System.out.println("signal() called. "+this + " " + Thread.currentThread());
+		for(Thread t: threadsMap.keySet()) {
+			LockSupport.unpark(t);
 		}
 	}
 
 	@Override
-	public String dump() {
-		return " busyWait=" + busyWait + " parkedCount=" + parkedCount + " unparkCount=" + unparkCount;
-	}
-
-	static void sleep(int duration) {
-		try {
-			Thread.sleep(duration);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+	public String toString() {
+		return "MixedSignalBarrier [maxYieldCount=" + maxYieldCount + ", busyWait=" + busyWait + ", parkedCount="
+				+ parkedCount + ", signalCount=" + signalCount + ", threadsMap.size=" + threadsMap.size() + ", cycle=" + cycleThreadLocal.get()
+				+ "]";
 	}
 
 }

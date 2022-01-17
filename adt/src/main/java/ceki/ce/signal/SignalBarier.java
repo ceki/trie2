@@ -6,6 +6,4 @@ public interface SignalBarier {
 
 	void parkNanos(long duration) throws InterruptedException;
 
-	String dump();
-
 }

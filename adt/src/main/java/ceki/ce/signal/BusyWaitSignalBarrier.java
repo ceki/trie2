@@ -37,8 +37,4 @@ public class BusyWaitSignalBarrier implements SignalBarier {
 		}
 	}
 
-	@Override
-	public String dump() {
-		return " parkCount=" + parkCount + " heavyParkedCount="+heavyParkedCount+" signalCount="+signalCount;
-	}
 }
